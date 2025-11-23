@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 
 const QUOTES = [
   "Discipline is freedom.",
@@ -18,8 +19,19 @@ export const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) =>
   const [text, setText] = useState('');
   const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
   const [phase, setPhase] = useState<'typing' | 'waiting' | 'scaling'>('typing');
+  
+  // Ref to ensure onComplete is accessible inside effect without triggering re-runs
+  const onCompleteRef = useRef(onComplete);
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
+
     let currentIndex = 0;
     const typeSpeed = 50; 
     
@@ -37,14 +49,16 @@ export const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) =>
           setPhase('scaling');
           // End
           setTimeout(() => {
-            onComplete();
+            if (onCompleteRef.current) {
+                onCompleteRef.current();
+            }
           }, 800);
         }, 1000);
       }
     }, typeSpeed);
 
     return () => clearInterval(interval);
-  }, [quote, onComplete]);
+  }, [quote]); // Run once per quote selection
 
   if (phase === 'scaling') {
     return (

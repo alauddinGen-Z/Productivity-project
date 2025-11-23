@@ -1,7 +1,9 @@
+
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, TaskQuadrant, WeeklySchedule } from '../types';
+import { AppState, TaskQuadrant } from '../types';
 import { PieChart, Zap, Target, Layers, Trophy, Activity } from 'lucide-react';
+import { LineChart, DonutChart } from './Charts';
 
 interface AnalyticsLayerProps {
   state: AppState;
@@ -11,8 +13,6 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
   const navigate = useNavigate();
-
-  // --- Calculation Logic ---
 
   // 1. Task Statistics
   const taskStats = useMemo(() => {
@@ -34,14 +34,11 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
 
   // 2. Schedule Stats & Line Chart Data
   const scheduleData = useMemo(() => {
-    // Calculate hours per day for Ideal vs Current
     const idealHours = DAYS.map(day => {
-      // Count keys in 'ideal' that start with "Day-"
       return Object.keys(state.weeklySchedule.ideal).filter(k => k.startsWith(`${day}-`)).length;
     });
 
     const currentHours = DAYS.map(day => {
-       // Count keys in 'current' that start with "Day-"
        return Object.keys(state.weeklySchedule.current).filter(k => k.startsWith(`${day}-`)).length;
     });
 
@@ -62,114 +59,6 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
     if (q.relationship.completed) done++;
     return { done, total };
   }, [state.dailyQuests]);
-
-  // --- Chart Components ---
-
-  const LineChart = () => {
-    const height = 150;
-    const width = 600; // viewBox width
-    const padding = 20;
-    const maxVal = Math.max(12, ...scheduleData.idealHours, ...scheduleData.currentHours); // Dynamic max, min 12
-    
-    // Helper to get coordinates
-    const getX = (index: number) => padding + (index * ((width - 2 * padding) / (DAYS.length - 1)));
-    const getY = (val: number) => height - padding - (val / maxVal) * (height - 2 * padding);
-
-    // Create Path Strings
-    const createPath = (data: number[]) => {
-      return data.map((val, i) => 
-        `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(val)}`
-      ).join(' ');
-    };
-
-    const idealPath = createPath(scheduleData.idealHours);
-    const currentPath = createPath(scheduleData.currentHours);
-
-    return (
-      <div className="w-full h-full">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
-          {/* Grid Lines */}
-          {[0, 0.5, 1].map((t) => (
-             <line 
-                key={t}
-                x1={padding} y1={padding + t * (height - 2 * padding)} 
-                x2={width - padding} y2={padding + t * (height - 2 * padding)} 
-                stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4 4" 
-             />
-          ))}
-
-          {/* Planned Line (Dashed) */}
-          <path d={idealPath} fill="none" stroke="#d6d3d1" strokeWidth="2" strokeDasharray="6 4" />
-          
-          {/* Points Ideal */}
-          {scheduleData.idealHours.map((val, i) => (
-            <circle key={`id-${i}`} cx={getX(i)} cy={getY(val)} r="3" fill="#d6d3d1" />
-          ))}
-
-          {/* Actual Line (Solid) */}
-          <path d={currentPath} fill="none" stroke="#b45309" strokeWidth="3" className="drop-shadow-sm" />
-          
-          {/* Points Actual */}
-          {scheduleData.currentHours.map((val, i) => (
-            <circle key={`cu-${i}`} cx={getX(i)} cy={getY(val)} r="4" fill="#b45309" stroke="white" strokeWidth="1.5" />
-          ))}
-
-          {/* X Labels */}
-          {DAYS.map((day, i) => (
-            <text key={day} x={getX(i)} y={height + 10} textAnchor="middle" fontSize="10" fill="#78716c" fontFamily="sans-serif">
-              {day}
-            </text>
-          ))}
-        </svg>
-      </div>
-    );
-  };
-
-  const DonutChart = ({ data }: { data: number[] }) => {
-    const size = 160;
-    const radius = 60;
-    const strokeWidth = 20;
-    const center = size / 2;
-    const circumference = 2 * Math.PI * radius;
-    const total = data.reduce((a, b) => a + b, 0);
-
-    if (total === 0) {
-      return (
-        <div className="flex items-center justify-center h-40 w-40 rounded-full border-4 border-stone-100 text-stone-300 text-xs uppercase tracking-widest">
-          No Data
-        </div>
-      );
-    }
-
-    let cumulativeAngle = 0;
-    const colors = ['#b45309', '#44403c', '#d6d3d1', '#f5f5f4']; // Amber-700, Stone-700, Stone-300, Stone-100
-
-    return (
-      <svg width={size} height={size} className="transform -rotate-90">
-        {data.map((value, index) => {
-          const percentage = value / total;
-          const dashArray = percentage * circumference;
-          const offset = cumulativeAngle;
-          cumulativeAngle += dashArray; 
-
-          return (
-            <circle
-              key={index}
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="transparent"
-              stroke={colors[index]}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${dashArray} ${circumference}`}
-              strokeDashoffset={-offset} 
-              className="transition-all duration-1000 ease-out"
-            />
-          );
-        })}
-      </svg>
-    );
-  };
 
   return (
     <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
@@ -255,7 +144,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
                 <Zap className="text-stone-200" size={24} />
             </div>
             <div className="h-48 w-full">
-                <LineChart />
+                <LineChart dataIdeal={scheduleData.idealHours} dataCurrent={scheduleData.currentHours} days={DAYS} />
             </div>
         </div>
 

@@ -4,6 +4,7 @@ import { Task, TaskQuadrant, WeeklySchedule, TimeBlock } from '../types';
 import { Plus, LayoutGrid, List, Filter, CheckSquare, Square, ArrowUpDown, Tag, CornerDownRight, Box, Clock, Calendar, ChevronDown, X, Zap, BarChart2 } from 'lucide-react';
 import { MatrixTaskItem } from './MatrixTaskItem';
 import { SchedulingModal } from './SchedulingModal';
+import { useSound } from '../hooks/useSound';
 
 interface TaskMatrixProps {
   tasks: Task[];
@@ -18,9 +19,8 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskTags, setNewTaskTags] = useState('');
   const [newTaskPurpose, setNewTaskPurpose] = useState('');
-  const [newTaskBlocks, setNewTaskBlocks] = useState(1); // Manual Block Setting
+  const [newTaskBlocks, setNewTaskBlocks] = useState(1);
   
-  // New State for Quick Scheduling
   const [newTaskSlot, setNewTaskSlot] = useState<{key: string, label: string, hour: number} | null>(null);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
   
@@ -32,9 +32,10 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
   const tagMenuRef = useRef<HTMLDivElement>(null);
   const timeMenuRef = useRef<HTMLDivElement>(null);
 
-  // Scheduling Modal State
   const [schedulingTaskId, setSchedulingTaskId] = useState<string | null>(null);
   
+  const { playClick, playAdd, playWhoosh } = useSound();
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (tagMenuRef.current && !tagMenuRef.current.contains(event.target as Node)) {
@@ -48,13 +49,11 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // --- Quick Schedule Logic ---
   const todayKey = useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'short' }), []);
   
   const availableSlots = useMemo(() => {
+      const hours = Array.from({ length: 16 }, (_, i) => i + 6);
       const slots = [];
-      const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6am - 9pm
-      
       for (const h of hours) {
           const key = `${todayKey}-${h}`;
           const block = schedule.ideal[key];
@@ -64,42 +63,19 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                   hour: h,
                   label: block.label,
                   category: block.category,
-                  isBusy: !!block.taskId // Check if already assigned
+                  isBusy: !!block.taskId 
               });
           }
       }
       return slots;
   }, [schedule.ideal, todayKey]);
 
-  // --- Audio Effects ---
-  const playWhoosh = useCallback(() => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      // Low frequency sweep for a subtle "air" sound
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(200, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
-      
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.2);
-    } catch (e) {
-      // Ignore audio errors
-    }
-  }, []);
-
-
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
     
+    playAdd();
+
     const tags = newTaskTags.split(',').map(t => t.trim()).filter(Boolean);
     const tempId = Date.now().toString();
 
@@ -112,25 +88,22 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       createdAt: Date.now(),
       tags: tags,
       purpose: newTaskPurpose,
-      blocks: newTaskBlocks // Use manual setting
+      blocks: newTaskBlocks
     };
     
     setTasks(prev => [...prev, newTask]);
     
-    // Handle Quick Schedule Linking
     if (newTaskSlot) {
         const newIdeal = { ...schedule.ideal };
-        // Check if slot still exists
         if (newIdeal[newTaskSlot.key]) {
             newIdeal[newTaskSlot.key] = {
                 ...newIdeal[newTaskSlot.key],
-                taskId: tempId // Link the new task
+                taskId: tempId
             };
             updateSchedule({ ...schedule, ideal: newIdeal });
         }
     }
 
-    // Reset Form
     setNewTaskTitle('');
     setNewTaskTags('');
     setNewTaskPurpose('');
@@ -140,7 +113,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
 
   const deleteTask = useCallback((id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
-    // Also remove from schedule if linked
     const newIdeal = { ...schedule.ideal };
     let changed = false;
     Object.keys(newIdeal).forEach(key => {
@@ -173,7 +145,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     setTasks(prev => prev.map(t => t.id === id ? { ...t, tags } : t));
   }, [setTasks]);
 
-  // --- Manual Subtask Management ---
   const handleAddSubtask = useCallback((taskId: string, title: string) => {
     setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
@@ -205,25 +176,24 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     }));
   }, [setTasks]);
 
-  // Schedule Logic
   const handleOpenScheduler = useCallback((taskId: string) => {
+      playClick();
       setSchedulingTaskId(taskId);
-  }, []);
+  }, [playClick]);
 
   const confirmSchedule = (day: string, hour: number) => {
       if (!schedulingTaskId) return;
+      playClick();
       const targetTask = tasks.find(t => t.id === schedulingTaskId);
       if (!targetTask) return;
 
       const key = `${day}-${hour}`;
-      
       const newIdeal = { ...schedule.ideal };
-      // Remove old slot if any
       Object.keys(newIdeal).forEach(k => {
           if (newIdeal[k].taskId === schedulingTaskId) {
               const oldBlock = newIdeal[k];
               const newBlock = { ...oldBlock };
-              delete newBlock.taskId; // Explicitly remove taskId
+              delete newBlock.taskId;
               newIdeal[k] = newBlock;
           }
       });
@@ -259,7 +229,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       return entry ? entry[0] : null;
   };
 
-  // Drag Handlers
   const handleDrop = (e: React.DragEvent, targetQuadrant: TaskQuadrant) => {
     e.preventDefault();
     e.currentTarget.classList.remove('bg-stone-50', 'ring-2', 'ring-stone-200');
@@ -285,7 +254,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     e.currentTarget.classList.remove('bg-stone-50', 'ring-2', 'ring-stone-200');
   };
 
-  // Derive unique tags for filter dropdown
   const uniqueTags = useMemo(() => {
     if (!Array.isArray(tasks)) return [];
     const allTags = tasks.reduce<string[]>((acc, t) => {
@@ -298,12 +266,12 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
   }, [tasks]);
 
   const toggleTagFilter = (tag: string) => {
+    playClick();
     setSelectedTags(prev => 
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     );
   };
 
-  // Memoize Sorted Tasks by Quadrant
   const sortedQuadrantTasks = useMemo(() => {
     if (!Array.isArray(tasks)) {
       return { [TaskQuadrant.DO]: [], [TaskQuadrant.SCHEDULE]: [], [TaskQuadrant.DELEGATE]: [], [TaskQuadrant.DELETE]: [] };
@@ -396,19 +364,17 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
 
   return (
     <div className="space-y-6 animate-fade-in relative">
-      
-      {/* Top Toolbar: View Switcher & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200">
          <div className="flex items-center gap-6">
             <button
-              onClick={() => setActiveView('matrix')}
+              onClick={() => { setActiveView('matrix'); playClick(); }}
               className={`flex items-center gap-2 text-sm font-serif transition-colors ${activeView === 'matrix' ? 'text-stone-800 font-bold' : 'text-stone-400 hover:text-stone-600'}`}
             >
               <LayoutGrid size={16} />
               Eisenhower Matrix
             </button>
             <button
-              onClick={() => setActiveView('ivylee')}
+              onClick={() => { setActiveView('ivylee'); playClick(); }}
               className={`flex items-center gap-2 text-sm font-serif transition-colors ${activeView === 'ivylee' ? 'text-stone-800 font-bold' : 'text-stone-400 hover:text-stone-600'}`}
             >
               <List size={16} />
@@ -416,12 +382,11 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
             </button>
          </div>
 
-         {/* Filters */}
          {activeView === 'matrix' && (
             <div className="flex items-center gap-4">
               <div className="relative" ref={tagMenuRef}>
                  <button 
-                    onClick={() => setIsTagMenuOpen(!isTagMenuOpen)}
+                    onClick={() => { setIsTagMenuOpen(!isTagMenuOpen); playClick(); }}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${selectedTags.length > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-stone-50 border-stone-100 text-stone-500 hover:border-stone-300'}`}
                  >
                     <Filter size={12} />
@@ -483,7 +448,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
          )}
       </div>
 
-      {/* Enhanced Task Creation Card */}
       <div className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 transition-all duration-300 focus-within:ring-1 focus-within:ring-stone-200">
         <form onSubmit={addTask}>
             <div className="flex flex-col gap-4">
@@ -513,7 +477,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                    </div>
 
                    <div className="flex items-center gap-4 flex-wrap">
-                      {/* Tags Input */}
                       <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                           <Tag size={14} className="text-stone-300 flex-shrink-0 ml-1" />
                           <input 
@@ -525,7 +488,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                           />
                       </div>
                       
-                      {/* Manual Difficulty / Blocks Selector */}
                       <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100">
                         <BarChart2 size={12} className="text-stone-400" />
                         <span className="text-xs text-stone-400 font-bold uppercase">Difficulty:</span>
@@ -534,7 +496,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                              <button
                                 key={level}
                                 type="button"
-                                onClick={() => setNewTaskBlocks(level)}
+                                onClick={() => { setNewTaskBlocks(level); playClick(); }}
                                 className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded transition-colors ${newTaskBlocks === level ? 'bg-stone-800 text-white' : 'bg-white text-stone-400 border border-stone-200 hover:border-stone-400'}`}
                              >
                                {level}
@@ -544,7 +506,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                         <span className="text-[9px] text-stone-400 ml-1">Blocks</span>
                       </div>
 
-                      {/* Quick Schedule Selector */}
                       <div className="relative" ref={timeMenuRef}>
                           {newTaskSlot ? (
                               <div className="flex items-center gap-2 bg-amber-100 px-3 py-1.5 rounded-sm border border-amber-300">
@@ -590,6 +551,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                                                   if (slot.isBusy) return;
                                                   setNewTaskSlot({ key: slot.key, label: slot.label, hour: slot.hour });
                                                   setIsTimeDropdownOpen(false);
+                                                  playClick();
                                               }}
                                               disabled={slot.isBusy}
                                               className={`w-full text-left px-3 py-2 border-b border-stone-50 flex items-center justify-between group ${
@@ -686,9 +648,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                 </div>
               ))
             )}
-          </div>
-          <div className="mt-12 text-center text-xs text-stone-400 uppercase tracking-widest">
-            Limit: 6 Tasks
           </div>
         </div>
       )}

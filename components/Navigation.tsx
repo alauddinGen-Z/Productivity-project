@@ -17,11 +17,7 @@ import {
   Box,
   PieChart
 } from 'lucide-react';
-
-// We import the loader functions to pass them through or just define the types if needed.
-// However, since we prefetch on hover, we need access to the loaders.
-// To keep it clean, we will accept the loader map or just logic here.
-// For this refactor, we will keep the structure simple.
+import { useSound } from '../hooks/useSound';
 
 interface NavigationProps {
   mobileOpen: boolean;
@@ -30,7 +26,6 @@ interface NavigationProps {
   onExport: () => void;
   userName: string;
   blockBalance: number;
-  // Passing loaders as a prop to avoid circular dependencies if imports get complex
   loaders: Record<string, () => Promise<any>>;
 }
 
@@ -44,6 +39,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   loaders 
 }) => {
   const location = useLocation();
+  const { playClick, playSoftClick } = useSound();
   
   const navItems = [
     { path: '/', label: 'Purpose & Dashboard', icon: LayoutDashboard, loaderKey: 'dashboard' },
@@ -66,7 +62,7 @@ export const Navigation: React.FC<NavigationProps> = ({
             <span className="text-[10px] text-stone-500 uppercase tracking-widest">System</span>
           </div>
         </div>
-        <button onClick={() => setMobileOpen(false)} className="lg:hidden text-stone-400">
+        <button onClick={() => { setMobileOpen(false); playClick(); }} className="lg:hidden text-stone-400">
           <X />
         </button>
       </div>
@@ -100,8 +96,11 @@ export const Navigation: React.FC<NavigationProps> = ({
             <Link
               key={item.path}
               to={item.path}
-              onClick={() => setMobileOpen(false)}
-              onMouseEnter={() => loaders[item.loaderKey] && loaders[item.loaderKey]()} 
+              onClick={() => { setMobileOpen(false); playClick(); }}
+              onMouseEnter={() => {
+                  playSoftClick();
+                  loaders[item.loaderKey] && loaders[item.loaderKey]();
+              }} 
               className={`flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200 group ${
                 isActive 
                   ? 'bg-[#FAF9F6] text-stone-900 shadow-sm' 
@@ -117,14 +116,14 @@ export const Navigation: React.FC<NavigationProps> = ({
 
       <div className="p-6 border-t border-stone-700 bg-[#252221] space-y-2">
         <button 
-          onClick={onExport}
+          onClick={() => { playClick(); onExport(); }}
           className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-stone-100 transition-colors text-sm"
         >
           <Download size={16} />
           <span>Backup Data</span>
         </button>
         <button 
-          onClick={onLogout}
+          onClick={() => { playClick(); onLogout(); }}
           className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-red-400 transition-colors text-sm"
         >
           <LogOut size={16} />

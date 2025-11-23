@@ -1,6 +1,8 @@
+
 import React, { useState, useMemo } from 'react';
 import { AppState } from '../types';
 import { BarChart3, Trophy, CheckCircle, Clock, Archive } from 'lucide-react';
+import { useSound } from '../hooks/useSound';
 
 interface WeeklyReviewProps {
   state: AppState;
@@ -11,6 +13,7 @@ export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ state, updateState }
   const [wins, setWins] = useState(['', '', '']);
   const [alignment, setAlignment] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const { playSuccess, playSoftClick, playAdd } = useSound();
 
   // Dynamic Stats Calculation
   const stats = useMemo(() => {
@@ -32,6 +35,7 @@ export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ state, updateState }
 
   const handleSave = () => {
     if (isSaved) return;
+    playSuccess();
 
     const today = new Date().toISOString().split('T')[0];
     const content = JSON.stringify({
@@ -67,7 +71,7 @@ export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ state, updateState }
               <h2 className="text-3xl font-serif font-bold text-stone-800 mb-2">Review Archived</h2>
               <p className="text-stone-500 font-serif italic">Your insights have been captured for the future.</p>
               <button 
-                onClick={() => setIsSaved(false)}
+                onClick={() => { setIsSaved(false); playAdd(); }}
                 className="mt-8 text-stone-400 hover:text-stone-600 underline text-sm"
               >
                   Edit Review
@@ -112,6 +116,7 @@ export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ state, updateState }
                     key={i}
                     value={win}
                     onChange={(e) => handleWinChange(i, e.target.value)}
+                    onFocus={() => playSoftClick()}
                     className="w-full bg-transparent border-b border-stone-300 focus:border-stone-600 outline-none py-2 text-stone-700 placeholder:text-stone-400 font-serif transition-colors" 
                     placeholder={`Win ${i + 1}...`} 
                 />
@@ -125,6 +130,7 @@ export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ state, updateState }
           <textarea 
             value={alignment}
             onChange={(e) => setAlignment(e.target.value)}
+            onFocus={() => playSoftClick()}
             className="w-full bg-transparent border-b border-stone-300 focus:border-stone-600 outline-none py-2 h-20 resize-none text-stone-700 placeholder:text-stone-400 font-serif leading-relaxed transition-colors" 
             placeholder="Did my actions align with my intentions? What distracted me?"
           ></textarea>

@@ -5,13 +5,13 @@ import { Menu, CheckCircle2, Loader2 } from 'lucide-react';
 
 import { AppState, INITIAL_STATE, Task, WeeklySchedule } from './types';
 import { IntroAnimation } from './components/IntroAnimation';
-import { supabase } from './services/supabaseClient';
+import { useDataSync } from './hooks/useDataSync';
 
 // Extracted Components
 import { LoginScreen } from './components/LoginScreen';
 import { Navigation } from './components/Navigation';
 
-// --- Lazy Load Components with Prefetch Capability ---
+// --- Lazy Load Components ---
 const loadDashboard = () => import('./components/Dashboard');
 const loadTasks = () => import('./components/TaskMatrix');
 const loadFocus = () => import('./components/FocusLayer');
@@ -30,7 +30,6 @@ const AnalyticsLayer = lazy(() => loadAnalytics().then(module => ({ default: mod
 const WeeklyReview = lazy(() => loadReview().then(module => ({ default: module.WeeklyReview })));
 const RewardShop = lazy(() => loadRewards().then(module => ({ default: module.RewardShop })));
 
-// Loader Map for Navigation
 const loaders = {
     dashboard: loadDashboard,
     tasks: loadTasks,
@@ -42,7 +41,6 @@ const loaders = {
     review: loadReview
 };
 
-// --- Types for Auth ---
 interface UserSession {
   name: string;
   email: string;
@@ -50,143 +48,7 @@ interface UserSession {
 
 const USER_KEY = 'intentional_current_user';
 const LAST_DATE_KEY = 'intentional_last_date';
-
-// --- Supabase Helpers ---
-
-const loadFromSupabase = async (email: string, name: string): Promise<AppState> => {
-  try {
-    let { data: profile, error: profileError } = await supabase
-      .from('profiles').select('*').eq('email', email).single();
-
-    if (!profile || profileError) {
-      const { data: newProfile, error: createError } = await supabase
-        .from('profiles').insert([{ email, name }]).select().single();
-      if (createError) throw createError;
-      profile = newProfile;
-      await supabase.from('daily_quests').insert([{ email }]);
-    }
-
-    const [tasksReq, questsReq, cardsReq, reflectionsReq] = await Promise.all([
-      supabase.from('tasks').select('*').eq('email', email),
-      supabase.from('daily_quests').select('*').eq('email', email).single(),
-      supabase.from('flashcards').select('*').eq('email', email),
-      supabase.from('reflections').select('*').eq('email', email)
-    ]);
-
-    const tasks = tasksReq.data || [];
-    const quests = questsReq.data || { work_title: '', health_title: '', relationship_title: '' }; 
-    const flashcards = cardsReq.data || [];
-    const reflections = reflectionsReq.data || [];
-
-    return {
-      userName: profile.name || name,
-      theThing: profile.the_thing || '',
-      celebrationVision: profile.celebration_vision || '',
-      currentNiyyah: profile.current_niyyah || '',
-      blockBalance: profile.block_balance || 0,
-      tasks: tasks.map((t: any) => ({
-        ...t,
-        isFrog: t.is_frog,
-        createdAt: t.created_at,
-        purpose: t.purpose,
-        tags: Array.isArray(t.tags) ? t.tags : [],
-        blocks: t.blocks || 1,
-        subtasks: Array.isArray(t.subtasks) 
-          ? t.subtasks.map((st: any) => typeof st === 'string' ? { title: st, completed: false } : st)
-          : undefined
-      })),
-      dailyQuests: {
-        work: { title: quests.work_title || '', completed: quests.work_completed || false },
-        health: { title: quests.health_title || '', completed: quests.health_completed || false },
-        relationship: { title: quests.relationship_title || '', completed: quests.relationship_completed || false },
-      },
-      flashcards: flashcards.map((f: any) => ({ ...f, nextReview: f.next_review })),
-      reflections: reflections.map((r: any) => ({ date: r.date, content: r.content })),
-      weeklySchedule: profile.weekly_schedule || { current: {}, ideal: {} },
-      customRewards: profile.custom_rewards || []
-    };
-  } catch (error) {
-    console.error('Error loading data:', error);
-    return { ...INITIAL_STATE, userName: name };
-  }
-};
-
-const syncToSupabase = async (email: string, data: AppState) => {
-  try {
-    await supabase.from('profiles').upsert({
-      email,
-      name: data.userName,
-      the_thing: data.theThing,
-      celebration_vision: data.celebrationVision,
-      current_niyyah: data.currentNiyyah,
-      weekly_schedule: data.weeklySchedule,
-      block_balance: data.blockBalance,
-      custom_rewards: data.customRewards
-    });
-
-    await supabase.from('daily_quests').upsert({
-      email,
-      work_title: data.dailyQuests.work.title,
-      work_completed: data.dailyQuests.work.completed,
-      health_title: data.dailyQuests.health.title,
-      health_completed: data.dailyQuests.health.completed,
-      relationship_title: data.dailyQuests.relationship.title,
-      relationship_completed: data.dailyQuests.relationship.completed,
-    });
-
-    const { data: dbTasks } = await supabase.from('tasks').select('id').eq('email', email);
-    if (dbTasks) {
-      const currentIds = new Set(data.tasks.map(t => t.id));
-      const toDelete = dbTasks.filter((t: any) => !currentIds.has(t.id)).map((t: any) => t.id);
-      if (toDelete.length > 0) await supabase.from('tasks').delete().in('id', toDelete);
-    }
-
-    const tasksToUpsert = data.tasks.map(t => ({
-      id: t.id,
-      email,
-      title: t.title,
-      completed: t.completed,
-      quadrant: t.quadrant,
-      is_frog: t.isFrog,
-      purpose: t.purpose,
-      tags: t.tags,
-      blocks: t.blocks,
-      created_at: t.createdAt,
-      subtasks: t.subtasks
-    }));
-    if (tasksToUpsert.length > 0) await supabase.from('tasks').upsert(tasksToUpsert);
-
-    const { data: dbCards } = await supabase.from('flashcards').select('id').eq('email', email);
-    if (dbCards) {
-      const currentIds = new Set(data.flashcards.map(c => c.id));
-      const toDelete = dbCards.filter((c: any) => !currentIds.has(c.id)).map((c: any) => c.id);
-      if (toDelete.length > 0) await supabase.from('flashcards').delete().in('id', toDelete);
-    }
-
-    const cardsToUpsert = data.flashcards.map(f => ({
-      id: f.id,
-      email,
-      question: f.question,
-      answer: f.answer,
-      next_review: f.nextReview,
-      interval: f.interval
-    }));
-    if (cardsToUpsert.length > 0) await supabase.from('flashcards').upsert(cardsToUpsert);
-
-    const reflectionsToUpsert = data.reflections.map(r => ({
-      email,
-      date: r.date,
-      content: r.content
-    }));
-    if (reflectionsToUpsert.length > 0) {
-      await supabase.from('reflections').upsert(reflectionsToUpsert, { onConflict: 'email, date' });
-    }
-
-  } catch (error) {
-    console.error('Sync Error:', error);
-    throw error;
-  }
-};
+const INTRO_SEEN_KEY = 'intentional_intro_seen';
 
 const AnimatedRoutes: React.FC<{
   state: AppState;
@@ -229,56 +91,37 @@ const App: React.FC = () => {
 
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
+  
+  // Use the new custom hook for sync logic
+  const { syncedState, isLoginLoading, saveStatus } = useDataSync(userSession, state);
+  
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem(INTRO_SEEN_KEY));
 
+  // Update local state when sync completes loading
   useEffect(() => {
-    if (userSession) {
-      setIsLoginLoading(true);
-      loadFromSupabase(userSession.email, userSession.name)
-        .then(data => {
-          const today = new Date().toDateString();
-          const lastDate = localStorage.getItem(LAST_DATE_KEY);
-          let finalData = data;
+    if (userSession && !isLoginLoading && syncedState) {
+        // Daily reset logic
+        const today = new Date().toDateString();
+        const lastDate = localStorage.getItem(LAST_DATE_KEY);
+        let finalData = syncedState;
           
-          if (lastDate !== today) {
+        if (lastDate !== today) {
              finalData = {
-               ...data,
+               ...syncedState,
                dailyQuests: {
-                  work: { ...data.dailyQuests.work, completed: false },
-                  health: { ...data.dailyQuests.health, completed: false },
-                  relationship: { ...data.dailyQuests.relationship, completed: false },
+                  work: { ...syncedState.dailyQuests.work, completed: false },
+                  health: { ...syncedState.dailyQuests.health, completed: false },
+                  relationship: { ...syncedState.dailyQuests.relationship, completed: false },
                }
              };
              localStorage.setItem(LAST_DATE_KEY, today);
-          }
-          setState(finalData);
-          setIsLoginLoading(false);
-        })
-        .catch(() => setIsLoginLoading(false));
+        }
+        setState(finalData);
     }
-  }, [userSession]);
-
-  useEffect(() => {
-    if (userSession && !isLoginLoading) {
-      if (state === INITIAL_STATE && state.tasks.length === 0 && !state.theThing) return;
-
-      setSaveStatus('saving');
-      const timer = setTimeout(() => {
-        syncToSupabase(userSession.email, state)
-          .then(() => setSaveStatus('saved'))
-          .catch(() => setSaveStatus('error'));
-      }, 2000); 
-
-      return () => clearTimeout(timer);
-    }
-  }, [state, userSession, isLoginLoading]);
+  }, [syncedState, isLoginLoading, userSession]);
 
   const handleLogin = async (name: string, email: string, remember: boolean) => {
-    setIsLoginLoading(true);
     const session = { name, email };
-    
     if (remember) {
       localStorage.setItem(USER_KEY, JSON.stringify(session));
       sessionStorage.removeItem(USER_KEY); 
@@ -287,7 +130,9 @@ const App: React.FC = () => {
       localStorage.removeItem(USER_KEY); 
     }
     setUserSession(session);
-    setShowIntro(true);
+    if (!sessionStorage.getItem(INTRO_SEEN_KEY)) {
+        setShowIntro(true);
+    }
   };
 
   const handleLogout = () => {
@@ -335,7 +180,10 @@ const App: React.FC = () => {
 
   return (
     <Router>
-       {showIntro && <IntroAnimation onComplete={() => setShowIntro(false)} />}
+       {showIntro && <IntroAnimation onComplete={() => {
+           setShowIntro(false);
+           sessionStorage.setItem(INTRO_SEEN_KEY, 'true');
+       }} />}
       <div className="flex min-h-screen bg-[#FAF9F6] text-stone-800 font-sans selection:bg-amber-100 selection:text-amber-900">
         <Navigation 
           mobileOpen={mobileOpen} 

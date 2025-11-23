@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Plus, X, Trash2, Gift, CheckCircle } from 'lucide-react';
 import { AppState, RewardItem } from '../types';
+import { useSound } from '../hooks/useSound';
 
 interface RewardShopProps {
   state: AppState;
@@ -23,8 +24,8 @@ const AVAILABLE_ICONS = [
 
 export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) => {
   const [redeemedId, setRedeemedId] = useState<string | null>(null);
+  const { playSuccess, playClick, playDelete, playAdd } = useSound();
   
-  // Custom Reward Creation State
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCost, setNewCost] = useState(1);
@@ -35,15 +36,18 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
 
   const redeemReward = (reward: RewardItem) => {
     if (state.blockBalance >= reward.cost) {
+      playSuccess();
       updateState({ blockBalance: state.blockBalance - reward.cost });
       setRedeemedId(reward.id);
-      setTimeout(() => setRedeemedId(null), 2500); // 2.5s display for the success message
+      setTimeout(() => setRedeemedId(null), 2500); 
     }
   };
 
   const handleCreateReward = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
+    
+    playAdd();
 
     const newItem: RewardItem = {
       id: `custom-${Date.now()}`,
@@ -55,7 +59,6 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
 
     updateState({ customRewards: [...state.customRewards, newItem] });
     
-    // Reset Form
     setIsCreating(false);
     setNewTitle('');
     setNewCost(1);
@@ -65,6 +68,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
 
   const handleDeleteReward = (id: string) => {
     if (confirm('Delete this custom reward?')) {
+      playDelete();
       updateState({ customRewards: state.customRewards.filter(r => r.id !== id) });
     }
   };
@@ -86,7 +90,6 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-12">
         
-      {/* Header / Wallet */}
       <div className="bg-[#2c2a26] text-stone-200 p-8 rounded-sm shadow-md border-t-4 border-emerald-600 flex justify-between items-center relative overflow-hidden">
         <div className="relative z-10">
           <h1 className="text-3xl font-serif mb-2 text-stone-50">Rest & Reward</h1>
@@ -100,23 +103,20 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
            <Box size={40} className="text-emerald-500" />
         </div>
         
-        {/* Decorative BG */}
         <div className="absolute -right-10 -bottom-10 text-stone-800 opacity-20 transform rotate-12">
             <ShoppingBag size={200} />
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="flex justify-end">
         <button 
-          onClick={() => setIsCreating(true)}
+          onClick={() => { setIsCreating(true); playClick(); }}
           className="flex items-center gap-2 bg-stone-800 text-white px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-stone-700 transition-colors"
         >
           <Plus size={16} /> Create Custom Reward
         </button>
       </div>
 
-      {/* Creation Modal/Overlay */}
       {isCreating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-md p-8 rounded-sm shadow-xl border border-stone-200 animate-fade-in">
@@ -168,7 +168,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                         <button
                           key={icon}
                           type="button"
-                          onClick={() => setNewIcon(icon)}
+                          onClick={() => { setNewIcon(icon); playClick(); }}
                           className={`p-2 rounded border transition-all ${newIcon === icon ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 hover:border-stone-400 text-stone-500'}`}
                         >
                           {renderIcon(icon, 18)}
@@ -197,14 +197,11 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
         </div>
       )}
 
-      {/* Shop Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {allRewards.map(reward => {
             const canAfford = state.blockBalance >= reward.cost;
             const isRedeemed = redeemedId === reward.id;
             const isCustom = reward.id.startsWith('custom-');
-            
-            // Calculate progress percentage
             const progressPercent = Math.min(100, Math.round((state.blockBalance / reward.cost) * 100));
 
             return (
@@ -214,7 +211,6 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                         canAfford ? 'border-stone-200 hover:border-emerald-400 hover:shadow-md' : 'border-stone-100 opacity-80'
                     }`}
                 >
-                    {/* Success Overlay */}
                     {isRedeemed && (
                         <div className="absolute inset-0 z-20 bg-emerald-50/95 flex flex-col items-center justify-center animate-fade-in p-6 text-center">
                             <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-3 animate-fade-slide">

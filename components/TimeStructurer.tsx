@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Briefcase, Coffee, Heart, Users, Moon, Trash2, PieChart, ArrowDown, ArrowRight } from 'lucide-react';
 import { WeeklySchedule, TimeBlock, BlockCategory, Task, TaskQuadrant } from '../types';
 import { TimeBlockModal } from './TimeBlockModal';
+import { useSound } from '../hooks/useSound';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -39,6 +40,8 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   // Context Menu State
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, day: string, hour: number } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  const { playClick, playSoftClick, playAdd, playDelete, playWhoosh } = useSound();
 
   const getBlock = (day: string, hour: number) => {
     const key = `${day}-${hour}`;
@@ -77,6 +80,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
       setContextMenu(null);
       return;
     }
+    playSoftClick();
     const existing = getBlock(day, hour);
     if (existing) {
       setTempBlock(existing);
@@ -92,6 +96,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
 
   const saveBlock = () => {
     if (!editingCell) return;
+    playAdd();
     
     const finalLabel = tempBlock.label.trim() || CATEGORIES.find(c => c.id === tempBlock.category)?.label || 'Block';
     let blockToSave = { ...tempBlock, label: finalLabel };
@@ -143,6 +148,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     const d = day || editingCell?.day;
     const h = hour || editingCell?.hour;
     if (!d || h === undefined) return;
+    playDelete();
 
     const key = `${d}-${h}`;
     const newViewMap = { ...schedule[view] };
@@ -155,6 +161,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
 
   const clearSchedule = () => {
     if (confirm(`Are you sure you want to clear the entire ${view === 'ideal' ? 'Vision' : 'Reality'} schedule?`)) {
+        playDelete();
         updateSchedule({ ...schedule, [view]: {} });
     }
   };
@@ -162,6 +169,8 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   const duplicateBlock = (sourceDay: string, sourceHour: number, target: 'DOWN' | 'TOMORROW') => {
     const block = getBlock(sourceDay, sourceHour);
     if (!block) return;
+    playAdd();
+
     let targetDay = sourceDay;
     let targetHour = sourceHour;
     if (target === 'DOWN') {
@@ -208,6 +217,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     const block = getBlock(dragSource.day, dragSource.hour);
     if (!block) return;
 
+    playWhoosh();
     const targetKey = `${day}-${hour}`;
     const sourceKey = `${dragSource.day}-${dragSource.hour}`;
     const isCopy = e.ctrlKey || e.altKey || e.metaKey;
@@ -223,6 +233,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   const handleContextMenu = (e: React.MouseEvent, day: string, hour: number) => {
     e.preventDefault();
     if (!getBlock(day, hour)) return;
+    playSoftClick();
     setContextMenu({ x: e.clientX, y: e.clientY, day, hour });
   };
 
@@ -271,11 +282,11 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     <div className="h-full flex flex-col space-y-6 animate-fade-in relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200">
         <div className="flex gap-4">
-          <button onClick={() => setView('ideal')} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'ideal' ? 'border-stone-800 text-stone-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Ideal Week (Vision)</button>
-          <button onClick={() => setView('current')} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'current' ? 'border-amber-600 text-amber-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Reality (Log)</button>
+          <button onClick={() => { setView('ideal'); playClick(); }} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'ideal' ? 'border-stone-800 text-stone-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Ideal Week (Vision)</button>
+          <button onClick={() => { setView('current'); playClick(); }} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'current' ? 'border-amber-600 text-amber-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Reality (Log)</button>
         </div>
         <div className="flex items-center gap-3">
-            <button onClick={() => setShowStats(!showStats)} className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${showStats ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'}`}>
+            <button onClick={() => { setShowStats(!showStats); playClick(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${showStats ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'}`}>
                 <PieChart size={14} />
                 <span className="text-xs font-bold uppercase tracking-wider hidden md:inline">Analytics</span>
             </button>

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Target, Calendar, Heart, Quote, PenLine, CheckSquare } from 'lucide-react';
 import { AppState, DailyQuests } from '../types';
+import { useSound } from '../hooks/useSound';
 
 interface DashboardProps {
   state: AppState;
@@ -11,14 +12,18 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
   const [isEditingVision, setIsEditingVision] = useState(false);
   const [niyyahInput, setNiyyahInput] = useState(state.currentNiyyah);
+  const { playSuccess, playClick, playAdd, playSoftClick } = useSound();
 
   const toggleQuest = (category: keyof DailyQuests) => {
+    const isCompleted = !state.dailyQuests[category].completed;
+    if (isCompleted) playSuccess(); else playClick();
+    
     updateState({
       dailyQuests: {
         ...state.dailyQuests,
         [category]: {
           ...state.dailyQuests[category],
-          completed: !state.dailyQuests[category].completed,
+          completed: isCompleted,
         },
       },
     });
@@ -34,6 +39,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
   };
 
   const saveNiyyah = () => {
+    playAdd();
     updateState({ currentNiyyah: niyyahInput });
   };
 
@@ -53,6 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
             type="text"
             value={niyyahInput}
             onChange={(e) => setNiyyahInput(e.target.value)}
+            onFocus={() => playSoftClick()}
             placeholder="e.g., To seek beneficial knowledge..."
             className="flex-1 bg-transparent px-4 py-3 text-stone-100 placeholder:text-stone-600 focus:outline-none font-serif italic text-lg"
           />
@@ -82,7 +89,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
               <p className="text-xs uppercase tracking-wider text-stone-400">Future Celebration</p>
             </div>
             <button 
-              onClick={() => setIsEditingVision(!isEditingVision)}
+              onClick={() => { setIsEditingVision(!isEditingVision); playClick(); }}
               className="text-stone-400 hover:text-stone-600 p-2"
             >
               <PenLine size={18} />
@@ -125,6 +132,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
           <textarea
             value={state.theThing}
             onChange={(e) => updateState({ theThing: e.target.value })}
+            onFocus={() => playSoftClick()}
             placeholder="What would you do even if you weren't paid?"
             className="w-full h-32 p-4 bg-[#FAF9F6] rounded-sm border-l-2 border-amber-200 focus:border-amber-400 outline-none resize-none text-stone-700 font-serif leading-relaxed text-sm"
           />
