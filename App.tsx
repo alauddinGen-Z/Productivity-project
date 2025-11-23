@@ -8,7 +8,7 @@ import { IntroAnimation } from './components/IntroAnimation';
 import { useDataSync } from './hooks/useDataSync';
 
 // Extracted Components
-import { LoginScreen } from './components/LoginScreen';
+import { LandingPage } from './components/LandingPage';
 import { Navigation } from './components/Navigation';
 
 // --- Lazy Load Components ---
@@ -63,7 +63,7 @@ const AnimatedRoutes: React.FC<{
     <div key={location.pathname} className="animate-fade-slide">
       <Routes location={location}>
         <Route path="/" element={<Dashboard state={state} updateState={updateState} />} />
-        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} />} />
+        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} toggleTask={toggleTask} />} />
         <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} />} />
         <Route path="/psych" element={<PsychologyLayer flashcards={state.flashcards} updateState={updateState} />} />
         <Route path="/graphics" element={<AnalyticsLayer state={state} />} />
@@ -176,7 +176,7 @@ const App: React.FC = () => {
     });
   };
 
-  if (!userSession) return <LoginScreen onLogin={handleLogin} loading={isLoginLoading} />;
+  if (!userSession) return <LandingPage onLogin={handleLogin} loading={isLoginLoading} />;
 
   return (
     <Router>

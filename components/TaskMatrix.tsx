@@ -1,114 +1,60 @@
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Task, TaskQuadrant, WeeklySchedule, TimeBlock } from '../types';
-import { Plus, LayoutGrid, List, Filter, CheckSquare, Square, ArrowUpDown, Tag, CornerDownRight, Box, Clock, Calendar, ChevronDown, X, Zap, BarChart2 } from 'lucide-react';
-import { MatrixTaskItem } from './MatrixTaskItem';
+import { Box, CornerDownRight } from 'lucide-react';
 import { SchedulingModal } from './SchedulingModal';
 import { useSound } from '../hooks/useSound';
+
+// Sub-components
+import { TaskToolbar } from './TaskToolbar';
+import { TaskCreationForm } from './TaskCreationForm';
+import { TaskQuadrantColumn } from './TaskQuadrantColumn';
 
 interface TaskMatrixProps {
   tasks: Task[];
   setTasks: (tasks: Task[] | ((prev: Task[]) => Task[])) => void;
   schedule: WeeklySchedule;
   updateSchedule: (schedule: WeeklySchedule) => void;
+  toggleTask: (id: string) => void;
 }
 
 type SortOption = 'NEWEST' | 'OLDEST' | 'AZ' | 'ZA' | 'PRIORITY';
 
-export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, schedule, updateSchedule }) => {
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskTags, setNewTaskTags] = useState('');
-  const [newTaskPurpose, setNewTaskPurpose] = useState('');
-  const [newTaskBlocks, setNewTaskBlocks] = useState(1);
-  
-  const [newTaskSlot, setNewTaskSlot] = useState<{key: string, label: string, hour: number} | null>(null);
-  const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
-  
+export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, schedule, updateSchedule, toggleTask }) => {
   const [activeView, setActiveView] = useState<'matrix' | 'ivylee'>('matrix');
   const [sortBy, setSortBy] = useState<SortOption>('NEWEST');
-  
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
-  const tagMenuRef = useRef<HTMLDivElement>(null);
-  const timeMenuRef = useRef<HTMLDivElement>(null);
-
   const [schedulingTaskId, setSchedulingTaskId] = useState<string | null>(null);
-  
-  const { playClick, playAdd, playWhoosh } = useSound();
+  const { playClick, playAdd } = useSound();
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (tagMenuRef.current && !tagMenuRef.current.contains(event.target as Node)) {
-        setIsTagMenuOpen(false);
-      }
-      if (timeMenuRef.current && !timeMenuRef.current.contains(event.target as Node)) {
-        setIsTimeDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const todayKey = useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'short' }), []);
-  
-  const availableSlots = useMemo(() => {
-      const hours = Array.from({ length: 16 }, (_, i) => i + 6);
-      const slots = [];
-      for (const h of hours) {
-          const key = `${todayKey}-${h}`;
-          const block = schedule.ideal[key];
-          if (block) {
-              slots.push({
-                  key,
-                  hour: h,
-                  label: block.label,
-                  category: block.category,
-                  isBusy: !!block.taskId 
-              });
-          }
-      }
-      return slots;
-  }, [schedule.ideal, todayKey]);
-
-  const addTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    
+  // --- Handlers ---
+  const handleAddTask = (newTaskPart: Partial<Task>, slot: {key: string, label: string, hour: number} | null) => {
     playAdd();
-
-    const tags = newTaskTags.split(',').map(t => t.trim()).filter(Boolean);
     const tempId = Date.now().toString();
-
     const newTask: Task = {
       id: tempId,
-      title: newTaskTitle,
+      title: newTaskPart.title || 'Untitled',
       completed: false,
       quadrant: TaskQuadrant.SCHEDULE, 
       isFrog: false,
       createdAt: Date.now(),
-      tags: tags,
-      purpose: newTaskPurpose,
-      blocks: newTaskBlocks
+      tags: newTaskPart.tags || [],
+      purpose: newTaskPart.purpose || '',
+      blocks: newTaskPart.blocks || 1
     };
     
     setTasks(prev => [...prev, newTask]);
     
-    if (newTaskSlot) {
+    if (slot) {
         const newIdeal = { ...schedule.ideal };
-        if (newIdeal[newTaskSlot.key]) {
-            newIdeal[newTaskSlot.key] = {
-                ...newIdeal[newTaskSlot.key],
+        if (newIdeal[slot.key]) {
+            newIdeal[slot.key] = {
+                ...newIdeal[slot.key],
                 taskId: tempId
             };
             updateSchedule({ ...schedule, ideal: newIdeal });
         }
     }
-
-    setNewTaskTitle('');
-    setNewTaskTags('');
-    setNewTaskPurpose('');
-    setNewTaskBlocks(1);
-    setNewTaskSlot(null);
   };
 
   const deleteTask = useCallback((id: string) => {
@@ -122,12 +68,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
         }
     });
     if (changed) updateSchedule({ ...schedule, ideal: newIdeal });
-
   }, [setTasks, schedule, updateSchedule]);
-
-  const toggleTask = useCallback((id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-  }, [setTasks]);
 
   const moveTask = useCallback((id: string, quadrant: TaskQuadrant) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, quadrant } : t));
@@ -176,11 +117,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     }));
   }, [setTasks]);
 
-  const handleOpenScheduler = useCallback((taskId: string) => {
-      playClick();
-      setSchedulingTaskId(taskId);
-  }, [playClick]);
-
   const confirmSchedule = (day: string, hour: number) => {
       if (!schedulingTaskId) return;
       playClick();
@@ -189,6 +125,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
 
       const key = `${day}-${hour}`;
       const newIdeal = { ...schedule.ideal };
+      // Clear old slot for this task if exists
       Object.keys(newIdeal).forEach(k => {
           if (newIdeal[k].taskId === schedulingTaskId) {
               const oldBlock = newIdeal[k];
@@ -229,48 +166,15 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       return entry ? entry[0] : null;
   };
 
-  const handleDrop = (e: React.DragEvent, targetQuadrant: TaskQuadrant) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove('bg-stone-50', 'ring-2', 'ring-stone-200');
-    
-    const data = e.dataTransfer.getData('application/json');
-    if (data) {
-        try {
-            const { id, sourceQuadrant } = JSON.parse(data);
-            if (id && sourceQuadrant !== targetQuadrant) {
-                moveTask(id, targetQuadrant);
-                playWhoosh();
-            }
-        } catch (err) { console.error(err); }
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.add('bg-stone-50', 'ring-2', 'ring-stone-200');
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.currentTarget.classList.remove('bg-stone-50', 'ring-2', 'ring-stone-200');
-  };
-
+  // --- Derived State ---
   const uniqueTags = useMemo(() => {
     if (!Array.isArray(tasks)) return [];
     const allTags = tasks.reduce<string[]>((acc, t) => {
-      if (t.tags && Array.isArray(t.tags)) {
-        return acc.concat(t.tags);
-      }
+      if (t.tags && Array.isArray(t.tags)) return acc.concat(t.tags);
       return acc;
     }, []);
     return Array.from(new Set(allTags)).sort();
   }, [tasks]);
-
-  const toggleTagFilter = (tag: string) => {
-    playClick();
-    setSelectedTags(prev => 
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
-  };
 
   const sortedQuadrantTasks = useMemo(() => {
     if (!Array.isArray(tasks)) {
@@ -314,290 +218,106 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       .slice(0, 6);
   }, [tasks, selectedTags]);
 
-  const renderQuadrant = (quadrant: TaskQuadrant, title: string, description: string, colorClass: string) => {
-    const qTasks = sortedQuadrantTasks[quadrant];
-
-    return (
-      <div 
-        onDrop={(e) => handleDrop(e, quadrant)}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        className={`p-5 rounded-sm border-t-4 ${colorClass} bg-white shadow-sm flex flex-col h-full transition-colors duration-200`}
-      >
-        <div className="mb-6 border-b border-stone-100 pb-2 flex justify-between items-start pointer-events-none">
-          <div>
-            <h3 className="font-serif font-bold text-stone-800 text-lg">{title}</h3>
-            <p className="text-[10px] uppercase tracking-wider text-stone-400">{description}</p>
-          </div>
-          <div className="text-xs text-stone-300 font-serif">
-            {qTasks.length}
-          </div>
-        </div>
-        <div className="flex-1 space-y-3 overflow-y-auto max-h-64 pr-2 custom-scrollbar">
-          {qTasks.length === 0 && (
-            <div className="h-full flex items-center justify-center text-stone-300 text-sm italic font-serif pointer-events-none">
-              {selectedTags.length > 0 ? 'No tasks with these tags' : 'Empty'}
-            </div>
-          )}
-          {qTasks.map(task => (
-            <MatrixTaskItem 
-              key={task.id}
-              task={task}
-              quadrant={quadrant}
-              toggleTask={toggleTask}
-              toggleFrog={toggleFrog}
-              deleteTask={deleteTask}
-              moveTask={moveTask}
-              addSubtask={handleAddSubtask}
-              deleteSubtask={handleDeleteSubtask}
-              toggleSubtask={toggleSubtask}
-              updatePurpose={updatePurpose}
-              updateTags={updateTags}
-              scheduledSlot={getTaskSlot(task.id)}
-              onOpenScheduler={handleOpenScheduler}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6 animate-fade-in relative">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200">
-         <div className="flex items-center gap-6">
-            <button
-              onClick={() => { setActiveView('matrix'); playClick(); }}
-              className={`flex items-center gap-2 text-sm font-serif transition-colors ${activeView === 'matrix' ? 'text-stone-800 font-bold' : 'text-stone-400 hover:text-stone-600'}`}
-            >
-              <LayoutGrid size={16} />
-              Eisenhower Matrix
-            </button>
-            <button
-              onClick={() => { setActiveView('ivylee'); playClick(); }}
-              className={`flex items-center gap-2 text-sm font-serif transition-colors ${activeView === 'ivylee' ? 'text-stone-800 font-bold' : 'text-stone-400 hover:text-stone-600'}`}
-            >
-              <List size={16} />
-              Ivy Lee Method
-            </button>
-         </div>
+      <TaskToolbar 
+        activeView={activeView}
+        setActiveView={setActiveView}
+        selectedTags={selectedTags}
+        toggleTagFilter={(tag) => {
+            playClick();
+            setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+        }}
+        clearTags={() => setSelectedTags([])}
+        uniqueTags={uniqueTags}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+      />
 
-         {activeView === 'matrix' && (
-            <div className="flex items-center gap-4">
-              <div className="relative" ref={tagMenuRef}>
-                 <button 
-                    onClick={() => { setIsTagMenuOpen(!isTagMenuOpen); playClick(); }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${selectedTags.length > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-stone-50 border-stone-100 text-stone-500 hover:border-stone-300'}`}
-                 >
-                    <Filter size={12} />
-                    <span className="text-xs font-serif font-medium">
-                        {selectedTags.length > 0 ? `Tags (${selectedTags.length})` : 'Filter Tags'}
-                    </span>
-                 </button>
-
-                 {isTagMenuOpen && (
-                    <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-stone-200 shadow-xl rounded-sm z-50 animate-fade-in">
-                        <div className="p-3 border-b border-stone-100 flex justify-between items-center">
-                            <span className="text-[10px] uppercase tracking-wider text-stone-400 font-bold">Available Tags</span>
-                            {selectedTags.length > 0 && (
-                                <button onClick={() => setSelectedTags([])} className="text-[10px] text-red-400 hover:text-red-600">Clear</button>
-                            )}
-                        </div>
-                        <div className="max-h-60 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                            {uniqueTags.length === 0 ? (
-                                <div className="p-4 text-center text-xs text-stone-400 italic">No tags created yet</div>
-                            ) : (
-                                uniqueTags.map(tag => {
-                                    const isSelected = selectedTags.includes(tag);
-                                    return (
-                                        <div 
-                                            key={tag} 
-                                            onClick={() => toggleTagFilter(tag)}
-                                            className={`flex items-center gap-3 px-2 py-2 cursor-pointer rounded-sm hover:bg-stone-50 transition-colors ${isSelected ? 'text-stone-800' : 'text-stone-500'}`}
-                                        >
-                                            <div className={`text-stone-400 ${isSelected ? 'text-stone-800' : ''}`}>
-                                                {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
-                                            </div>
-                                            <span className="text-sm font-serif truncate">#{tag}</span>
-                                        </div>
-                                    )
-                                })
-                            )}
-                        </div>
-                    </div>
-                 )}
-              </div>
-
-              <div className="flex items-center gap-2 group cursor-pointer bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100 hover:border-stone-300 transition-colors">
-                <ArrowUpDown size={12} className="text-stone-400 group-hover:text-stone-600" />
-                <div className="relative">
-                  <select 
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="bg-transparent text-xs font-serif text-stone-600 focus:outline-none cursor-pointer hover:text-stone-800 appearance-none pr-2"
-                  >
-                    <option value="NEWEST">Newest</option>
-                    <option value="OLDEST">Oldest</option>
-                    <option value="PRIORITY">Priority</option>
-                    <option value="AZ">Name (A-Z)</option>
-                    <option value="ZA">Name (Z-A)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-         )}
-      </div>
-
-      <div className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 transition-all duration-300 focus-within:ring-1 focus-within:ring-stone-200">
-        <form onSubmit={addTask}>
-            <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                   <div className="p-2 bg-stone-100 rounded-full text-stone-400">
-                      <Plus size={18} />
-                   </div>
-                   <input
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="What needs to be done?"
-                    className="flex-1 bg-transparent text-xl font-serif text-stone-800 placeholder:text-stone-300 focus:outline-none"
-                   />
-                </div>
-
-                <div className="pl-12 space-y-3">
-                   <div className="flex items-start gap-2">
-                      <CornerDownRight size={14} className="text-amber-500 mt-2 flex-shrink-0" />
-                      <input
-                        type="text"
-                        value={newTaskPurpose}
-                        onChange={(e) => setNewTaskPurpose(e.target.value)}
-                        placeholder="Why is this important? (Connect to Niyyah/Goal)"
-                        className="flex-1 bg-amber-50/50 px-3 py-2 text-sm font-serif italic text-stone-600 focus:bg-amber-50 focus:outline-none rounded-sm placeholder:text-amber-700/30 transition-colors"
-                      />
-                   </div>
-
-                   <div className="flex items-center gap-4 flex-wrap">
-                      <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                          <Tag size={14} className="text-stone-300 flex-shrink-0 ml-1" />
-                          <input 
-                            type="text"
-                            value={newTaskTags}
-                            onChange={(e) => setNewTaskTags(e.target.value)}
-                            placeholder="Tags (comma separated)..."
-                            className="w-full bg-transparent text-xs text-stone-500 focus:outline-none placeholder:text-stone-300 ml-1"
-                          />
-                      </div>
-                      
-                      <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100">
-                        <BarChart2 size={12} className="text-stone-400" />
-                        <span className="text-xs text-stone-400 font-bold uppercase">Difficulty:</span>
-                        <div className="flex gap-1">
-                          {[1, 2, 3].map(level => (
-                             <button
-                                key={level}
-                                type="button"
-                                onClick={() => { setNewTaskBlocks(level); playClick(); }}
-                                className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded transition-colors ${newTaskBlocks === level ? 'bg-stone-800 text-white' : 'bg-white text-stone-400 border border-stone-200 hover:border-stone-400'}`}
-                             >
-                               {level}
-                             </button>
-                          ))}
-                        </div>
-                        <span className="text-[9px] text-stone-400 ml-1">Blocks</span>
-                      </div>
-
-                      <div className="relative" ref={timeMenuRef}>
-                          {newTaskSlot ? (
-                              <div className="flex items-center gap-2 bg-amber-100 px-3 py-1.5 rounded-sm border border-amber-300">
-                                  <Clock size={12} className="text-amber-700" />
-                                  <span className="text-xs font-bold text-amber-800 font-mono">
-                                    {todayKey} @ {newTaskSlot.hour}:00
-                                  </span>
-                                  <button 
-                                    type="button"
-                                    onClick={() => setNewTaskSlot(null)}
-                                    className="ml-2 text-amber-600 hover:text-amber-800"
-                                  >
-                                    <X size={12} />
-                                  </button>
-                              </div>
-                          ) : (
-                              <button
-                                type="button"
-                                onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
-                                className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-200 hover:border-stone-400 transition-colors text-xs text-stone-500"
-                              >
-                                  <Calendar size={12} />
-                                  <span>Pick Available Time</span>
-                                  <ChevronDown size={10} />
-                              </button>
-                          )}
-
-                          {isTimeDropdownOpen && (
-                              <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-stone-200 shadow-xl rounded-sm z-50 animate-fade-in max-h-60 overflow-y-auto custom-scrollbar">
-                                  <div className="p-2 border-b border-stone-100 text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-stone-50 sticky top-0">
-                                      {todayKey}'s Time Blocks
-                                  </div>
-                                  {availableSlots.length === 0 ? (
-                                      <div className="p-4 text-center text-xs text-stone-400 italic">
-                                          No blocks in Schedule for today.
-                                      </div>
-                                  ) : (
-                                      availableSlots.map(slot => (
-                                          <button
-                                              key={slot.key}
-                                              type="button"
-                                              onClick={() => {
-                                                  if (slot.isBusy) return;
-                                                  setNewTaskSlot({ key: slot.key, label: slot.label, hour: slot.hour });
-                                                  setIsTimeDropdownOpen(false);
-                                                  playClick();
-                                              }}
-                                              disabled={slot.isBusy}
-                                              className={`w-full text-left px-3 py-2 border-b border-stone-50 flex items-center justify-between group ${
-                                                  slot.isBusy ? 'bg-stone-50 opacity-50 cursor-not-allowed' : 'hover:bg-amber-50 cursor-pointer'
-                                              }`}
-                                          >
-                                              <div className="flex flex-col">
-                                                  <span className="text-xs font-mono font-bold text-stone-600">{slot.hour}:00</span>
-                                                  <span className="text-[10px] text-stone-400">{slot.label}</span>
-                                              </div>
-                                              {slot.isBusy ? (
-                                                  <span className="text-[9px] uppercase font-bold text-red-300">Busy</span>
-                                              ) : (
-                                                  <Zap size={12} className="text-stone-300 group-hover:text-amber-400" />
-                                              )}
-                                          </button>
-                                      ))
-                                  )}
-                              </div>
-                          )}
-                      </div>
-                   </div>
-                </div>
-
-                <div className="flex justify-end pt-2 border-t border-stone-50 mt-2">
-                   <button 
-                    type="submit"
-                    disabled={!newTaskTitle.trim()}
-                    className="bg-stone-800 text-white px-6 py-2 rounded-sm text-xs uppercase tracking-widest font-bold hover:bg-stone-700 disabled:opacity-50 transition-colors shadow-sm"
-                   >
-                     Add Task
-                   </button>
-                </div>
-            </div>
-        </form>
-      </div>
+      <TaskCreationForm onAddTask={handleAddTask} schedule={schedule} />
 
       {activeView === 'matrix' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[600px]">
-          {renderQuadrant(TaskQuadrant.DO, 'Do First', 'Urgent & Important', 'border-amber-700/60')}
-          {renderQuadrant(TaskQuadrant.SCHEDULE, 'Schedule', 'Deep Work & Strategy', 'border-stone-600')}
-          {renderQuadrant(TaskQuadrant.DELEGATE, 'Delegate', 'Urgent, Not Important', 'border-stone-400')}
-          {renderQuadrant(TaskQuadrant.DELETE, 'Eliminate', 'Distractions', 'border-stone-300')}
+          <TaskQuadrantColumn 
+             quadrant={TaskQuadrant.DO}
+             title="Do First"
+             description="Urgent & Important"
+             colorClass="border-amber-700/60"
+             tasks={sortedQuadrantTasks[TaskQuadrant.DO]}
+             toggleTask={toggleTask}
+             toggleFrog={toggleFrog}
+             deleteTask={deleteTask}
+             moveTask={moveTask}
+             addSubtask={handleAddSubtask}
+             deleteSubtask={handleDeleteSubtask}
+             toggleSubtask={toggleSubtask}
+             updatePurpose={updatePurpose}
+             updateTags={updateTags}
+             getTaskSlot={getTaskSlot}
+             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             selectedTags={selectedTags}
+          />
+          <TaskQuadrantColumn 
+             quadrant={TaskQuadrant.SCHEDULE}
+             title="Schedule"
+             description="Deep Work & Strategy"
+             colorClass="border-stone-600"
+             tasks={sortedQuadrantTasks[TaskQuadrant.SCHEDULE]}
+             toggleTask={toggleTask}
+             toggleFrog={toggleFrog}
+             deleteTask={deleteTask}
+             moveTask={moveTask}
+             addSubtask={handleAddSubtask}
+             deleteSubtask={handleDeleteSubtask}
+             toggleSubtask={toggleSubtask}
+             updatePurpose={updatePurpose}
+             updateTags={updateTags}
+             getTaskSlot={getTaskSlot}
+             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             selectedTags={selectedTags}
+          />
+          <TaskQuadrantColumn 
+             quadrant={TaskQuadrant.DELEGATE}
+             title="Delegate"
+             description="Urgent, Not Important"
+             colorClass="border-stone-400"
+             tasks={sortedQuadrantTasks[TaskQuadrant.DELEGATE]}
+             toggleTask={toggleTask}
+             toggleFrog={toggleFrog}
+             deleteTask={deleteTask}
+             moveTask={moveTask}
+             addSubtask={handleAddSubtask}
+             deleteSubtask={handleDeleteSubtask}
+             toggleSubtask={toggleSubtask}
+             updatePurpose={updatePurpose}
+             updateTags={updateTags}
+             getTaskSlot={getTaskSlot}
+             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             selectedTags={selectedTags}
+          />
+          <TaskQuadrantColumn 
+             quadrant={TaskQuadrant.DELETE}
+             title="Eliminate"
+             description="Distractions"
+             colorClass="border-stone-300"
+             tasks={sortedQuadrantTasks[TaskQuadrant.DELETE]}
+             toggleTask={toggleTask}
+             toggleFrog={toggleFrog}
+             deleteTask={deleteTask}
+             moveTask={moveTask}
+             addSubtask={handleAddSubtask}
+             deleteSubtask={handleDeleteSubtask}
+             toggleSubtask={toggleSubtask}
+             updatePurpose={updatePurpose}
+             updateTags={updateTags}
+             getTaskSlot={getTaskSlot}
+             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             selectedTags={selectedTags}
+          />
         </div>
       ) : (
         <div className="bg-white p-12 rounded-sm shadow-sm border border-stone-200 max-w-2xl mx-auto relative animate-fade-in">
+          {/* Ivy Lee View Implementation */}
           <div className="absolute top-0 left-0 w-full h-2 bg-stone-800"></div>
           <div className="text-center mb-12">
             <h2 className="text-3xl font-serif font-bold text-stone-800">The Ivy Lee Method</h2>
