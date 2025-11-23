@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Box, Coffee, Gamepad2, Youtube, Music, Sun, ShoppingBag, Lock, Plus, X, Trash2, Gift } from 'lucide-react';
+import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Plus, X, Trash2, Gift, CheckCircle } from 'lucide-react';
 import { AppState, RewardItem } from '../types';
 
 interface RewardShopProps {
@@ -18,7 +18,7 @@ const DEFAULT_REWARDS: RewardItem[] = [
 ];
 
 const AVAILABLE_ICONS = [
-  'Box', 'Coffee', 'Gamepad2', 'Youtube', 'Music', 'Sun', 'ShoppingBag', 'Gift'
+  'Box', 'Coffee', 'Gamepad2', 'Youtube', 'Music', 'Sun', 'Moon', 'ShoppingBag', 'Gift'
 ];
 
 export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) => {
@@ -37,7 +37,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
     if (state.blockBalance >= reward.cost) {
       updateState({ blockBalance: state.blockBalance - reward.cost });
       setRedeemedId(reward.id);
-      setTimeout(() => setRedeemedId(null), 2000);
+      setTimeout(() => setRedeemedId(null), 2500); // 2.5s display for the success message
     }
   };
 
@@ -76,6 +76,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
           case 'Coffee': return <Coffee size={size} />;
           case 'Music': return <Music size={size} />;
           case 'Sun': return <Sun size={size} />;
+          case 'Moon': return <Moon size={size} />;
           case 'ShoppingBag': return <ShoppingBag size={size} />;
           case 'Gift': return <Gift size={size} />;
           default: return <Box size={size} />;
@@ -202,14 +203,28 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
             const canAfford = state.blockBalance >= reward.cost;
             const isRedeemed = redeemedId === reward.id;
             const isCustom = reward.id.startsWith('custom-');
+            
+            // Calculate progress percentage
+            const progressPercent = Math.min(100, Math.round((state.blockBalance / reward.cost) * 100));
 
             return (
                 <div 
                     key={reward.id} 
                     className={`bg-white p-6 rounded-sm border transition-all duration-300 relative group overflow-hidden flex flex-col ${
-                        canAfford ? 'border-stone-200 hover:border-emerald-400 hover:shadow-md' : 'border-stone-100 opacity-60'
+                        canAfford ? 'border-stone-200 hover:border-emerald-400 hover:shadow-md' : 'border-stone-100 opacity-80'
                     }`}
                 >
+                    {/* Success Overlay */}
+                    {isRedeemed && (
+                        <div className="absolute inset-0 z-20 bg-emerald-50/95 flex flex-col items-center justify-center animate-fade-in p-6 text-center">
+                            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-3 animate-fade-slide">
+                                <CheckCircle size={24} className="text-emerald-600" />
+                            </div>
+                            <h3 className="text-emerald-800 font-serif font-bold text-lg mb-1">Reward Claimed!</h3>
+                            <p className="text-emerald-600 text-xs font-serif italic">Enjoy your hard-earned break.</p>
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-start mb-4">
                         <div className={`p-3 rounded-full ${canAfford ? 'bg-stone-50 text-stone-700' : 'bg-stone-100 text-stone-300'}`}>
                             {renderIcon(reward.icon, 24)}
@@ -224,48 +239,51 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                                <Trash2 size={14} />
                              </button>
                            )}
-                           <div className="flex items-center gap-1 font-mono font-bold text-lg text-stone-800">
-                               {reward.cost} <Box size={14} className="text-stone-400" />
+                           <div className={`flex items-center gap-1 font-mono font-bold text-lg ${canAfford ? 'text-stone-800' : 'text-stone-400'}`}>
+                               {reward.cost} <Box size={14} className={canAfford ? 'text-stone-400' : 'text-stone-300'} />
                            </div>
                         </div>
                     </div>
                     
                     <div className="flex-1">
-                      <h3 className="font-serif font-bold text-xl text-stone-800 mb-1">{reward.title}</h3>
+                      <h3 className={`font-serif font-bold text-xl mb-1 ${canAfford ? 'text-stone-800' : 'text-stone-400'}`}>{reward.title}</h3>
                       {reward.description && (
-                        <p className="text-xs text-stone-500 font-serif italic mb-4">{reward.description}</p>
+                        <p className={`text-xs font-serif italic mb-4 ${canAfford ? 'text-stone-500' : 'text-stone-300'}`}>{reward.description}</p>
                       )}
                     </div>
                     
-                    <button
-                        onClick={() => redeemReward(reward)}
-                        disabled={!canAfford}
-                        className={`w-full py-3 mt-4 text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 ${
-                            isRedeemed 
-                                ? 'bg-emerald-600 text-white' 
-                                : canAfford 
-                                    ? 'bg-stone-800 text-white hover:bg-stone-700' 
-                                    : 'bg-stone-100 text-stone-400 cursor-not-allowed'
-                        }`}
-                    >
-                        {isRedeemed ? (
-                            <>Enjoy! <Sun size={14} /></>
-                        ) : canAfford ? (
-                            'Redeem Reward'
-                        ) : (
-                            <><Lock size={12} /> Need {reward.cost - state.blockBalance} more</>
+                    <div className="mt-4">
+                        {!canAfford && (
+                            <div className="mb-2">
+                                <div className="flex justify-between text-[10px] text-stone-400 uppercase tracking-wider mb-1">
+                                    <span>Progress</span>
+                                    <span>{progressPercent}%</span>
+                                </div>
+                                <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-amber-300 transition-all duration-500 ease-out" 
+                                        style={{ width: `${progressPercent}%` }}
+                                    ></div>
+                                </div>
+                            </div>
                         )}
-                    </button>
-                    
-                    {/* Visual progress bar towards affording it */}
-                    {!canAfford && (
-                        <div className="absolute bottom-0 left-0 w-full h-1 bg-stone-100">
-                            <div 
-                                className="h-full bg-stone-300" 
-                                style={{ width: `${(state.blockBalance / reward.cost) * 100}%` }}
-                            ></div>
-                        </div>
-                    )}
+                        
+                        <button
+                            onClick={() => redeemReward(reward)}
+                            disabled={!canAfford}
+                            className={`w-full py-3 text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 ${
+                                canAfford 
+                                    ? 'bg-stone-800 text-white hover:bg-stone-700' 
+                                    : 'bg-stone-50 text-stone-300 cursor-not-allowed border border-stone-100'
+                            }`}
+                        >
+                            {canAfford ? (
+                                'Redeem Reward'
+                            ) : (
+                                <><Lock size={12} /> Need {reward.cost - state.blockBalance} more</>
+                            )}
+                        </button>
+                    </div>
                 </div>
             );
         })}

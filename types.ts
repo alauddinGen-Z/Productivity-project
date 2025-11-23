@@ -24,13 +24,6 @@ export interface Task {
   blocks: number; // Gamification value
 }
 
-export interface Goal {
-  id: string;
-  title: string;
-  isActive: boolean; // True = Active Portfolio, False = Backlog
-  progress: number;
-}
-
 export interface DailyQuests {
   work: { title: string; completed: boolean };
   health: { title: string; completed: boolean };
@@ -73,7 +66,6 @@ export interface AppState {
   currentNiyyah: string; // Intention
   blockBalance: number; // Gamification Currency
   tasks: Task[];
-  goals: Goal[];
   dailyQuests: DailyQuests;
   flashcards: Flashcard[];
   reflections: { date: string; content: string }[];
@@ -104,7 +96,6 @@ export const INITIAL_STATE: AppState = {
       ]
     }
   ],
-  goals: [],
   dailyQuests: {
     work: { title: '', completed: false },
     health: { title: '', completed: false },

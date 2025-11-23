@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, Pause, RefreshCw, Coffee, BellOff, Smartphone, Check, Target, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { Play, Pause, RefreshCw, Coffee, BellOff, Smartphone, Check, Target, CheckCircle2, Clock, Calendar, Lock, ArrowRight, Moon, Zap } from 'lucide-react';
 import { Task, WeeklySchedule, TimeBlock } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface FocusLayerProps {
   tasks: Task[];
@@ -10,6 +10,7 @@ interface FocusLayerProps {
 }
 
 export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, schedule }) => {
+  const navigate = useNavigate();
   const [isDeepWorkMode, setIsDeepWorkMode] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   
@@ -41,6 +42,8 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             }
         } else {
             setCurrentBlock(null);
+            // If strictly enforcing schedule, we might want to kick them out of deep work mode if time passes
+            // But usually better to let them finish the session.
         }
     };
     
@@ -84,10 +87,6 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
     setTimeLeft(mode === 'focus' ? FOCUS_DURATION : BREAK_DURATION);
   };
 
-  const handleEndSession = () => {
-    setIsActive(false);
-  };
-
   const handleTaskCompletion = () => {
     if (selectedTaskId) {
         toggleTask(selectedTaskId);
@@ -115,6 +114,39 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
 
   const selectedTask = useMemo(() => tasks.find(t => t.id === selectedTaskId), [tasks, selectedTaskId]);
 
+  // --- RESTRICTED MODE RENDER ---
+  // If no block is scheduled in the Time Structure for right now, Focus Mode is unavailable.
+  if (!currentBlock && !isDeepWorkMode) {
+      return (
+          <div className="max-w-xl mx-auto mt-12 animate-fade-in p-8 text-center bg-white rounded-sm shadow-sm border border-stone-200">
+             <div className="w-24 h-24 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6 text-stone-400">
+                 <Moon size={40} />
+             </div>
+             <h2 className="text-3xl font-serif font-bold text-stone-800 mb-3">Rest & Recharge</h2>
+             <p className="text-stone-500 font-serif italic mb-8 leading-relaxed max-w-md mx-auto">
+                 There is no active "Focus Block" scheduled for <strong>{currentTimeKey.split('-')[1]}:00</strong> in your Time Structure. 
+                 <br/><br/>
+                 True productivity requires respecting the recovery phase.
+             </p>
+
+             <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                 <button 
+                    onClick={() => navigate('/plan')}
+                    className="flex items-center justify-center gap-2 bg-stone-800 text-white px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-stone-700 transition-all rounded-sm"
+                 >
+                    <Calendar size={14} /> Check Schedule
+                 </button>
+                 <button 
+                    onClick={() => navigate('/rewards')}
+                    className="flex items-center justify-center gap-2 bg-white text-stone-600 border border-stone-200 px-6 py-3 text-xs font-bold uppercase tracking-widest hover:border-emerald-400 hover:text-emerald-600 transition-all rounded-sm"
+                 >
+                    <Coffee size={14} /> Visit Reward Shop
+                 </button>
+             </div>
+          </div>
+      );
+  }
+
   if (!isDeepWorkMode) {
     return (
       <div className="max-w-xl mx-auto mt-8 animate-fade-in pb-12">
@@ -125,7 +157,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             
             {/* Live Context Badge */}
             <div className="absolute top-4 right-4 flex items-center gap-2 bg-stone-800/80 px-3 py-1.5 rounded-full border border-stone-700">
-               <Clock size={12} className="text-amber-500" />
+               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                <span className="text-[10px] font-mono font-bold text-stone-300">{currentTimeKey.replace('-', ' @ ')}:00</span>
             </div>
           </div>
@@ -134,48 +166,60 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             
             {/* Current Schedule Context */}
             {currentBlock && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-sm flex items-start gap-3">
-                    <Calendar className="text-amber-600 mt-1" size={18} />
+                <div className="bg-amber-50 border border-amber-200 p-5 rounded-sm flex items-start gap-4 shadow-sm">
+                    <div className="p-3 bg-white rounded-full border border-amber-100 text-amber-600">
+                        <Clock size={20} />
+                    </div>
                     <div>
                         <div className="text-[10px] uppercase tracking-widest text-amber-700 font-bold mb-1">Scheduled For Now</div>
-                        <div className="font-serif text-stone-800 font-medium text-lg">{currentBlock.label}</div>
-                        <div className="text-xs text-stone-500">{currentBlock.category} Block</div>
+                        <div className="font-serif text-stone-800 font-bold text-xl">{currentBlock.label}</div>
+                        <div className="text-xs text-stone-500 mt-1 flex items-center gap-1">
+                             <div className={`w-2 h-2 rounded-full ${currentBlock.category === 'DEEP' ? 'bg-stone-800' : 'bg-emerald-500'}`}></div>
+                             {currentBlock.category} Category
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Task Selector */}
             <div className="bg-[#FAF9F6] p-6 border border-stone-200 rounded-sm">
-                <div className="flex items-center gap-2 mb-4 text-stone-800 font-bold uppercase tracking-widest text-xs">
-                    <Target size={14} />
-                    <span>Select Your Target</span>
+                <div className="flex items-center justify-between mb-4">
+                     <div className="flex items-center gap-2 text-stone-800 font-bold uppercase tracking-widest text-xs">
+                        <Target size={14} />
+                        <span>Select Your Target</span>
+                    </div>
+                    <button onClick={() => navigate('/tasks')} className="text-[10px] text-stone-400 hover:text-stone-600 underline">Manage Tasks</button>
                 </div>
+               
                 {tasks.filter(t => !t.completed).length === 0 ? (
-                    <div className="text-stone-400 text-sm italic">No open tasks. Add one in the Matrix first.</div>
+                    <div className="text-stone-400 text-sm italic py-4 text-center border border-dashed border-stone-300 rounded">
+                        No open tasks found.
+                    </div>
                 ) : (
                     <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar">
                         {tasks.filter(t => !t.completed).map(task => {
                             const isScheduledNow = currentBlock?.taskId === task.id;
+                            const isSelected = selectedTaskId === task.id;
                             
                             return (
                                 <div 
                                     key={task.id}
                                     onClick={() => setSelectedTaskId(task.id)}
                                     className={`p-3 rounded-sm border cursor-pointer transition-all flex items-center justify-between group ${
-                                        selectedTaskId === task.id 
-                                        ? 'bg-stone-800 text-white border-stone-800' 
+                                        isSelected 
+                                        ? 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-[1.02]' 
                                         : isScheduledNow 
-                                            ? 'bg-amber-100 border-amber-300 text-stone-800' 
+                                            ? 'bg-amber-100 border-amber-300 text-stone-800 shadow-sm' 
                                             : 'bg-white border-stone-200 hover:border-stone-400 text-stone-600'
                                     }`}
                                 >
                                     <div className="flex flex-col overflow-hidden">
                                         <div className="flex items-center gap-2">
-                                            {isScheduledNow && <span className="text-[9px] bg-amber-500 text-white px-1 rounded font-bold uppercase">Now</span>}
+                                            {isScheduledNow && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isSelected ? 'bg-amber-500 text-white' : 'bg-amber-200 text-amber-800'}`}>Now</span>}
                                             <span className="text-sm font-serif truncate">{task.title}</span>
                                         </div>
                                     </div>
-                                    {selectedTaskId === task.id && <Check size={14} />}
+                                    {isSelected && <Check size={16} className="text-emerald-400" />}
                                 </div>
                             );
                         })}
@@ -210,12 +254,13 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             <button
               disabled={!allChecked || !selectedTaskId}
               onClick={() => setIsDeepWorkMode(true)}
-              className={`w-full py-5 text-xs font-bold uppercase tracking-[0.2em] transition-all border ${
+              className={`w-full py-5 text-xs font-bold uppercase tracking-[0.2em] transition-all border flex items-center justify-center gap-3 ${
                 allChecked && selectedTaskId
-                  ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700' 
+                  ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700 shadow-md hover:shadow-lg transform active:scale-95' 
                   : 'bg-stone-100 text-stone-400 border-stone-100 cursor-not-allowed'
               }`}
             >
+              <Zap size={16} className={allChecked && selectedTaskId ? "text-amber-400 fill-amber-400" : ""} />
               Enter The Zone
             </button>
             {!selectedTaskId && (

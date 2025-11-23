@@ -1,6 +1,8 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Calendar, X, Briefcase, Coffee, Heart, Users, Moon, Trash2, Check, BarChart3, Repeat, RotateCcw, PieChart, Move, Copy, Clock, ArrowDown, ArrowRight } from 'lucide-react';
-import { WeeklySchedule, TimeBlock, BlockCategory } from '../types';
+import { Briefcase, Coffee, Heart, Users, Moon, Trash2, PieChart, ArrowDown, ArrowRight } from 'lucide-react';
+import { WeeklySchedule, TimeBlock, BlockCategory, Task, TaskQuadrant } from '../types';
+import { TimeBlockModal } from './TimeBlockModal';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -8,6 +10,7 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 interface TimeStructurerProps {
   schedule: WeeklySchedule;
   updateSchedule: (schedule: WeeklySchedule) => void;
+  updateTasks: (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => void;
 }
 
 const CATEGORIES: { id: BlockCategory; label: string; color: string; icon: React.ElementType }[] = [
@@ -18,7 +21,7 @@ const CATEGORIES: { id: BlockCategory; label: string; color: string; icon: React
   { id: 'REST', label: 'Rest & Recharge', color: 'bg-indigo-50 text-indigo-800 border-l-4 border-indigo-400', icon: Moon },
 ];
 
-export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, updateSchedule }) => {
+export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, updateSchedule, updateTasks }) => {
   const [view, setView] = useState<'ideal' | 'current'>('ideal');
   const [editingCell, setEditingCell] = useState<{ day: string, hour: number } | null>(null);
   const [tempBlock, setTempBlock] = useState<TimeBlock>({ category: 'DEEP', label: '' });
@@ -27,6 +30,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   const [duration, setDuration] = useState(1);
   const [applyToAllDays, setApplyToAllDays] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [addToMatrix, setAddToMatrix] = useState(false);
   
   // Drag and Drop State
   const [dragSource, setDragSource] = useState<{ day: string, hour: number } | null>(null);
@@ -76,11 +80,12 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     const existing = getBlock(day, hour);
     if (existing) {
       setTempBlock(existing);
-      setDuration(1); // Default to 1 when editing existing to avoid accidental massive overwrites
+      setDuration(1);
     } else {
       setTempBlock({ category: 'DEEP', label: '' });
       setDuration(1);
     }
+    setAddToMatrix(false); 
     setEditingCell({ day, hour });
     setApplyToAllDays(false);
   };
@@ -88,27 +93,39 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   const saveBlock = () => {
     if (!editingCell) return;
     
-    // Auto-label if empty
     const finalLabel = tempBlock.label.trim() || CATEGORIES.find(c => c.id === tempBlock.category)?.label || 'Block';
-    const blockToSave = { ...tempBlock, label: finalLabel };
+    let blockToSave = { ...tempBlock, label: finalLabel };
+
+    if (addToMatrix && view === 'ideal') {
+        const taskId = `task-${Date.now()}`;
+        const newTask: Task = {
+            id: taskId,
+            title: finalLabel,
+            completed: false,
+            quadrant: TaskQuadrant.SCHEDULE,
+            isFrog: false,
+            createdAt: Date.now(),
+            blocks: 1, 
+            tags: ['scheduled']
+        };
+        updateTasks(prev => [...prev, newTask]);
+        blockToSave.taskId = taskId;
+    }
 
     let newViewMap = { ...schedule[view] };
-
     const hoursToFill = duration;
 
     if (applyToAllDays) {
-        // Apply to this start hour (and duration) across ALL days
         DAYS.forEach(d => {
             for (let i = 0; i < hoursToFill; i++) {
                 const h = editingCell.hour + i;
-                if (h <= 21) { // Simple bounds check (max hour rendered is usually up to 21)
+                if (h <= 21) { 
                     const key = `${d}-${h}`;
                     newViewMap[key] = blockToSave;
                 }
             }
         });
     } else {
-        // Apply for duration on current day
         for (let i = 0; i < hoursToFill; i++) {
             const h = editingCell.hour + i;
             if (h <= 21) {
@@ -118,48 +135,35 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
         }
     }
 
-    updateSchedule({
-      ...schedule,
-      [view]: newViewMap
-    });
+    updateSchedule({ ...schedule, [view]: newViewMap });
     setEditingCell(null);
   };
 
   const deleteBlock = (day?: string, hour?: number) => {
     const d = day || editingCell?.day;
     const h = hour || editingCell?.hour;
-
     if (!d || h === undefined) return;
 
     const key = `${d}-${h}`;
     const newViewMap = { ...schedule[view] };
     delete newViewMap[key];
     
-    updateSchedule({
-      ...schedule,
-      [view]: newViewMap
-    });
+    updateSchedule({ ...schedule, [view]: newViewMap });
     setEditingCell(null);
     setContextMenu(null);
   };
 
   const clearSchedule = () => {
-    if (confirm(`Are you sure you want to clear the entire ${view === 'ideal' ? 'Vision' : 'Reality'} schedule? This cannot be undone.`)) {
-        updateSchedule({
-            ...schedule,
-            [view]: {}
-        });
+    if (confirm(`Are you sure you want to clear the entire ${view === 'ideal' ? 'Vision' : 'Reality'} schedule?`)) {
+        updateSchedule({ ...schedule, [view]: {} });
     }
   };
 
-  // --- Duplication Logic ---
   const duplicateBlock = (sourceDay: string, sourceHour: number, target: 'DOWN' | 'TOMORROW') => {
     const block = getBlock(sourceDay, sourceHour);
     if (!block) return;
-
     let targetDay = sourceDay;
     let targetHour = sourceHour;
-
     if (target === 'DOWN') {
       targetHour = sourceHour + 1;
     } else if (target === 'TOMORROW') {
@@ -167,25 +171,17 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
       if (dayIdx < DAYS.length - 1) {
           targetDay = DAYS[dayIdx + 1];
       } else {
-          targetDay = DAYS[0]; // Wrap to Monday
+          targetDay = DAYS[0]; 
       }
     }
-    
-    // Bounds check
     if (targetHour > 21) return;
-
     const targetKey = `${targetDay}-${targetHour}`;
     updateSchedule({
         ...schedule,
-        [view]: {
-            ...schedule[view],
-            [targetKey]: block
-        }
+        [view]: { ...schedule[view], [targetKey]: block }
     });
     setContextMenu(null);
   };
-
-  // --- Drag and Drop Handlers ---
 
   const handleDragStart = (e: React.DragEvent, day: string, hour: number) => {
     const block = getBlock(day, hour);
@@ -195,7 +191,6 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     }
     setDragSource({ day, hour });
     e.dataTransfer.effectAllowed = 'copyMove';
-    // Transparent drag image or default
     e.dataTransfer.setData('text/plain', JSON.stringify({ day, hour }));
   };
 
@@ -206,53 +201,29 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     }
   };
 
-  const handleDragEnd = () => {
-    setDragSource(null);
-    setDragOverCell(null);
-  };
-
   const handleDrop = (e: React.DragEvent, day: string, hour: number) => {
     e.preventDefault();
     setDragOverCell(null);
     if (!dragSource) return;
-
     const block = getBlock(dragSource.day, dragSource.hour);
     if (!block) return;
 
     const targetKey = `${day}-${hour}`;
     const sourceKey = `${dragSource.day}-${dragSource.hour}`;
-    
-    // If holding Ctrl/Alt, Copy. Otherwise Move.
     const isCopy = e.ctrlKey || e.altKey || e.metaKey;
-
     const newMap = { ...schedule[view] };
-    
-    // Place in new spot
     newMap[targetKey] = block;
-
-    // Remove from old spot if not copying and not dropping on self
     if (!isCopy && targetKey !== sourceKey) {
         delete newMap[sourceKey];
     }
-
-    updateSchedule({
-        ...schedule,
-        [view]: newMap
-    });
+    updateSchedule({ ...schedule, [view]: newMap });
     setDragSource(null);
   };
 
   const handleContextMenu = (e: React.MouseEvent, day: string, hour: number) => {
     e.preventDefault();
-    const block = getBlock(day, hour);
-    if (!block) return;
-    
-    setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
-        day,
-        hour
-    });
+    if (!getBlock(day, hour)) return;
+    setContextMenu({ x: e.clientX, y: e.clientY, day, hour });
   };
 
   const renderCell = (day: string, hour: number) => {
@@ -274,7 +245,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
           <div 
             draggable
             onDragStart={(e) => handleDragStart(e, day, hour)}
-            onDragEnd={handleDragEnd}
+            onDragEnd={() => { setDragSource(null); setDragOverCell(null); }}
             className={`h-full w-full rounded-sm p-1.5 text-[10px] shadow-sm cursor-grab active:cursor-grabbing flex flex-col justify-between overflow-hidden transition-all ${categoryInfo.color} ${isDragging ? 'opacity-40 grayscale' : 'opacity-100'}`}
           >
              <div className="font-bold leading-tight truncate">{block.label}</div>
@@ -298,47 +269,22 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
 
   return (
     <div className="h-full flex flex-col space-y-6 animate-fade-in relative">
-      
-      {/* Header Controls */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200">
         <div className="flex gap-4">
-          <button
-            onClick={() => setView('ideal')}
-            className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'ideal' ? 'border-stone-800 text-stone-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}
-          >
-            Ideal Week (Vision)
-          </button>
-          <button
-            onClick={() => setView('current')}
-            className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'current' ? 'border-amber-600 text-amber-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}
-          >
-            Reality (Log)
-          </button>
+          <button onClick={() => setView('ideal')} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'ideal' ? 'border-stone-800 text-stone-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Ideal Week (Vision)</button>
+          <button onClick={() => setView('current')} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'current' ? 'border-amber-600 text-amber-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Reality (Log)</button>
         </div>
-
         <div className="flex items-center gap-3">
-            <button
-                onClick={() => setShowStats(!showStats)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${showStats ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'}`}
-                title="Toggle Stats"
-            >
+            <button onClick={() => setShowStats(!showStats)} className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${showStats ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'}`}>
                 <PieChart size={14} />
                 <span className="text-xs font-bold uppercase tracking-wider hidden md:inline">Analytics</span>
             </button>
-            
-            {/* RESET BUTTON */}
-            <button 
-                onClick={clearSchedule}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-stone-200 hover:border-red-200 hover:bg-red-50 text-stone-500 hover:text-red-600 transition-all text-xs font-bold uppercase tracking-wider"
-                title="Clear entire schedule"
-            >
-                <Trash2 size={14} />
-                <span>Reset</span>
+            <button onClick={clearSchedule} className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-stone-200 hover:border-red-200 hover:bg-red-50 text-stone-500 hover:text-red-600 transition-all text-xs font-bold uppercase tracking-wider">
+                <Trash2 size={14} /> <span>Reset</span>
             </button>
         </div>
       </div>
 
-      {/* Analytics Panel */}
       {showStats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200 animate-fade-in">
            {CATEGORIES.map(cat => (
@@ -355,112 +301,43 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
         </div>
       )}
 
-      {/* Main Grid */}
       <div className="flex-1 overflow-auto custom-scrollbar bg-white rounded-sm shadow-sm border border-stone-200">
          <div className="min-w-[800px]">
-            {/* Header Row */}
             <div className="grid grid-cols-[60px_repeat(7,1fr)] bg-stone-50 border-b border-stone-200 sticky top-0 z-10">
                 <div className="p-3 text-xs font-bold text-stone-400 uppercase tracking-wider text-center border-r border-stone-200">Time</div>
                 {DAYS.map(day => (
-                    <div key={day} className="p-3 text-xs font-bold text-stone-600 uppercase tracking-wider text-center border-r border-stone-200">
-                        {day}
-                    </div>
+                    <div key={day} className="p-3 text-xs font-bold text-stone-600 uppercase tracking-wider text-center border-r border-stone-200">{day}</div>
                 ))}
             </div>
-            
-            {/* Time Rows */}
             {HOURS.map(hour => (
                 <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] hover:bg-stone-50/30">
-                    <div className="p-2 text-xs font-mono text-stone-400 text-center border-r border-b border-stone-200 flex items-center justify-center">
-                        {hour}:00
-                    </div>
+                    <div className="p-2 text-xs font-mono text-stone-400 text-center border-r border-b border-stone-200 flex items-center justify-center">{hour}:00</div>
                     {DAYS.map(day => renderCell(day, hour))}
                 </div>
             ))}
          </div>
       </div>
 
-      {/* Edit Modal (Overlay) */}
       {editingCell && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-stone-900/10 backdrop-blur-[1px]">
-          <div className="bg-white p-6 rounded-sm shadow-xl border border-stone-200 w-80 animate-fade-in">
-             <div className="flex justify-between items-center mb-4">
-               <h3 className="font-serif font-bold text-lg">
-                 {editingCell.day} @ {editingCell.hour}:00
-               </h3>
-               <button onClick={() => setEditingCell(null)} className="text-stone-400 hover:text-stone-600"><X size={18}/></button>
-             </div>
-
-             <div className="space-y-4">
-               <div>
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Type</label>
-                  <div className="grid grid-cols-1 gap-2 mt-2">
-                    {CATEGORIES.map(cat => (
-                        <button
-                          key={cat.id}
-                          onClick={() => setTempBlock({ ...tempBlock, category: cat.id })}
-                          className={`flex items-center gap-3 px-3 py-2 text-sm border transition-all ${tempBlock.category === cat.id ? 'border-stone-800 bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}
-                        >
-                           <cat.icon size={14} className={tempBlock.category === cat.id ? 'text-stone-800' : 'text-stone-400'} />
-                           <span className={tempBlock.category === cat.id ? 'font-bold text-stone-800' : 'text-stone-600'}>{cat.label}</span>
-                        </button>
-                    ))}
-                  </div>
-               </div>
-
-               <div>
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Label</label>
-                  <input 
-                    type="text"
-                    value={tempBlock.label}
-                    onChange={(e) => setTempBlock({ ...tempBlock, label: e.target.value })}
-                    placeholder="Specific task..."
-                    className="w-full mt-1 p-2 bg-stone-50 border border-stone-200 focus:border-stone-800 outline-none text-sm font-serif"
-                    autoFocus
-                  />
-               </div>
-
-               <div className="flex gap-4">
-                  <div className="flex-1">
-                      <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Duration (Hrs)</label>
-                      <input 
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={duration}
-                        onChange={(e) => setDuration(parseInt(e.target.value))}
-                        className="w-full mt-1 p-2 bg-stone-50 border border-stone-200 focus:border-stone-800 outline-none text-sm font-serif"
-                      />
-                  </div>
-                  <div className="flex items-center pt-5">
-                      <div 
-                        className="flex items-center gap-2 cursor-pointer"
-                        onClick={() => setApplyToAllDays(!applyToAllDays)}
-                      >
-                         <div className={`w-4 h-4 border flex items-center justify-center ${applyToAllDays ? 'bg-stone-800 border-stone-800' : 'border-stone-300'}`}>
-                            {applyToAllDays && <Check size={10} className="text-white" />}
-                         </div>
-                         <span className="text-xs text-stone-600">All Days</span>
-                      </div>
-                  </div>
-               </div>
-
-               <div className="flex gap-2 mt-4 pt-4 border-t border-stone-100">
-                 {getBlock(editingCell.day, editingCell.hour) && (
-                    <button onClick={() => deleteBlock()} className="px-4 py-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
-                        <Trash2 size={16} />
-                    </button>
-                 )}
-                 <button onClick={saveBlock} className="flex-1 bg-stone-800 text-white py-2 font-bold text-xs uppercase tracking-widest hover:bg-stone-700">
-                    Save Block
-                 </button>
-               </div>
-             </div>
-          </div>
-        </div>
+        <TimeBlockModal 
+            editingCell={editingCell}
+            tempBlock={tempBlock}
+            setTempBlock={setTempBlock}
+            duration={duration}
+            setDuration={setDuration}
+            applyToAllDays={applyToAllDays}
+            setApplyToAllDays={setApplyToAllDays}
+            addToMatrix={addToMatrix}
+            setAddToMatrix={setAddToMatrix}
+            view={view}
+            onClose={() => setEditingCell(null)}
+            onSave={saveBlock}
+            onDelete={deleteBlock}
+            hasExistingBlock={!!getBlock(editingCell.day, editingCell.hour)}
+            categories={CATEGORIES}
+        />
       )}
 
-      {/* Context Menu */}
       {contextMenu && (
         <div 
           ref={contextMenuRef}
@@ -470,23 +347,14 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
             <div className="px-3 py-2 border-b border-stone-100 text-[10px] text-stone-400 uppercase tracking-wider font-bold">
                 {contextMenu.day} @ {contextMenu.hour}:00
             </div>
-            <button 
-                onClick={() => duplicateBlock(contextMenu.day, contextMenu.hour, 'DOWN')}
-                className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-2"
-            >
+            <button onClick={() => duplicateBlock(contextMenu.day, contextMenu.hour, 'DOWN')} className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-2">
                 <ArrowDown size={14} /> Duplicate Down
             </button>
-            <button 
-                onClick={() => duplicateBlock(contextMenu.day, contextMenu.hour, 'TOMORROW')}
-                className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-2"
-            >
+            <button onClick={() => duplicateBlock(contextMenu.day, contextMenu.hour, 'TOMORROW')} className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-2">
                 <ArrowRight size={14} /> Duplicate to Tmrw
             </button>
             <div className="h-px bg-stone-100 my-1"></div>
-            <button 
-                onClick={() => deleteBlock(contextMenu.day, contextMenu.hour)}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-            >
+            <button onClick={() => deleteBlock(contextMenu.day, contextMenu.hour)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                 <Trash2 size={14} /> Delete
             </button>
         </div>

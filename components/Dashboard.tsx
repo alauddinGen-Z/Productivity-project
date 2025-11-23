@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Target, Calendar, Heart, Quote, PenLine, CheckSquare, Clock } from 'lucide-react';
+import { Target, Calendar, Heart, Quote, PenLine, CheckSquare, Clock } from 'lucide-react';
 import { AppState, DailyQuests, TimeBlock } from '../types';
 
 interface DashboardProps {
