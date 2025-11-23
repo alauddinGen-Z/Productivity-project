@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { Target, Calendar, Heart, Quote, PenLine, CheckSquare, Clock } from 'lucide-react';
-import { AppState, DailyQuests, TimeBlock } from '../types';
+import React, { useState } from 'react';
+import { Target, Calendar, Heart, Quote, PenLine, CheckSquare } from 'lucide-react';
+import { AppState, DailyQuests } from '../types';
 
 interface DashboardProps {
   state: AppState;
@@ -11,13 +11,6 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
   const [isEditingVision, setIsEditingVision] = useState(false);
   const [niyyahInput, setNiyyahInput] = useState(state.currentNiyyah);
-  const [todayKey, setTodayKey] = useState<string>('Mon');
-
-  useEffect(() => {
-    // Get current day abbreviation (Mon, Tue, etc.)
-    const day = new Date().toLocaleDateString('en-US', { weekday: 'short' });
-    setTodayKey(day);
-  }, []);
 
   const toggleQuest = (category: keyof DailyQuests) => {
     updateState({
@@ -43,49 +36,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
   const saveNiyyah = () => {
     updateState({ currentNiyyah: niyyahInput });
   };
-
-  // --- Logic for Scheduled Blocks ---
-  // 1. Get Ideal blocks for today
-  // 2. Check if they exist in 'current' (Reality)
-  const getDailySchedule = () => {
-    const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
-    
-    return hours.map(hour => {
-      const key = `${todayKey}-${hour}`;
-      const idealBlock = state.weeklySchedule.ideal[key];
-      const realBlock = state.weeklySchedule.current[key];
-      
-      if (!idealBlock) return null;
-
-      return {
-        hour,
-        key,
-        ideal: idealBlock,
-        isCompleted: !!realBlock // It's "completed" if it exists in Reality map
-      };
-    }).filter(Boolean) as { hour: number, key: string, ideal: TimeBlock, isCompleted: boolean }[];
-  };
-
-  const toggleScheduleBlock = (key: string, idealBlock: TimeBlock) => {
-    const currentMap = { ...state.weeklySchedule.current };
-    
-    if (currentMap[key]) {
-      // Remove from reality (uncheck)
-      delete currentMap[key];
-    } else {
-      // Add to reality (check)
-      currentMap[key] = idealBlock;
-    }
-
-    updateState({
-      weeklySchedule: {
-        ...state.weeklySchedule,
-        current: currentMap
-      }
-    });
-  };
-
-  const scheduledItems = getDailySchedule();
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -123,56 +73,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Today's Blueprint (Linked from Schedule) */}
-        <div className="bg-white p-0 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-1 flex flex-col h-96">
-           <div className="p-6 border-b border-stone-100 bg-[#FAF9F6]">
-             <div className="flex items-center gap-2 mb-1">
-                <Clock size={18} className="text-stone-400" />
-                <h2 className="text-lg font-serif font-bold text-stone-800">Today's Blueprint</h2>
-             </div>
-             <p className="text-[10px] uppercase tracking-wider text-stone-400">
-               {todayKey}'s Plan • Click to Complete
-             </p>
-           </div>
-           
-           <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-             {scheduledItems.length === 0 ? (
-               <div className="text-center mt-10 text-stone-400 font-serif italic text-sm">
-                 No schedule planned for {todayKey}.<br/>Go to "Time Structure" to plan.
-               </div>
-             ) : (
-               scheduledItems.map((item) => (
-                 <div 
-                   key={item.key}
-                   onClick={() => toggleScheduleBlock(item.key, item.ideal)}
-                   className={`flex items-center gap-3 p-3 rounded-sm border cursor-pointer transition-all group ${
-                     item.isCompleted 
-                       ? 'bg-stone-50 border-stone-200 opacity-60' 
-                       : 'bg-white border-stone-200 hover:border-stone-800 hover:shadow-sm'
-                   }`}
-                 >
-                   <div className="w-10 text-xs font-bold text-stone-400 font-mono text-right">
-                     {item.hour}:00
-                   </div>
-                   <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${
-                     item.isCompleted ? 'bg-stone-800 border-stone-800' : 'border-stone-300'
-                   }`}>
-                     {item.isCompleted && <CheckSquare size={10} className="text-white" />}
-                   </div>
-                   <div className={`flex-1 text-sm font-serif ${item.isCompleted ? 'line-through text-stone-400' : 'text-stone-700'}`}>
-                     {item.ideal.label}
-                   </div>
-                   <div className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-stone-100 text-stone-500`}>
-                     {item.ideal.category.substring(0,1)}
-                   </div>
-                 </div>
-               ))
-             )}
-           </div>
-        </div>
-
-        {/* 12-Month Celebration */}
-        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2 relative h-96 flex flex-col">
+        {/* 12-Month Celebration (Expanded to Full Width) */}
+        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-3 relative h-96 flex flex-col">
            <div className="absolute top-0 left-0 w-full h-1 bg-stone-100"></div>
           <div className="flex items-center justify-between mb-6">
             <div>

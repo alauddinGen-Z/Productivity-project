@@ -1,7 +1,7 @@
+
 import React, { useState } from 'react';
 import { Flashcard, AppState } from '../types';
-import { analyzeFeynman } from '../services/geminiService';
-import { Brain, MessageSquare, Loader2, BookOpen, RotateCcw } from 'lucide-react';
+import { MessageSquare, BookOpen, RotateCcw } from 'lucide-react';
 
 interface PsychologyLayerProps {
   flashcards: Flashcard[];
@@ -17,8 +17,6 @@ export const PsychologyLayer: React.FC<PsychologyLayerProps> = ({ flashcards, up
 
   const [feynmanConcept, setFeynmanConcept] = useState('');
   const [feynmanExplanation, setFeynmanExplanation] = useState('');
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const addFlashcard = () => {
     if (!newCardQ || !newCardA) return;
@@ -47,15 +45,6 @@ export const PsychologyLayer: React.FC<PsychologyLayerProps> = ({ flashcards, up
     );
     updateState({ flashcards: updated });
     setShowAnswer(null);
-  };
-
-  const handleFeynmanSubmit = async () => {
-    if (!feynmanExplanation) return;
-    setIsAnalyzing(true);
-    setAiAnalysis(null);
-    const result = await analyzeFeynman(feynmanConcept, feynmanExplanation);
-    setAiAnalysis(result);
-    setIsAnalyzing(false);
   };
 
   return (
@@ -179,46 +168,31 @@ export const PsychologyLayer: React.FC<PsychologyLayerProps> = ({ flashcards, up
             
             <div className="space-y-8">
               <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Concept</label>
+                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Concept to Master</label>
                 <input 
                   type="text" 
-                  className="w-full p-4 bg-[#FAF9F6] border border-stone-200 text-xl font-serif focus:border-stone-400 outline-none"
+                  className="w-full p-4 bg-[#FAF9F6] border border-stone-200 text-xl font-serif focus:border-stone-800 outline-none"
                   placeholder="Quantum Entanglement..."
                   value={feynmanConcept}
                   onChange={(e) => setFeynmanConcept(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Simple Explanation</label>
+                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Explain it like I'm five</label>
                 <textarea 
-                  className="w-full p-4 h-64 bg-[#FAF9F6] border border-stone-200 focus:border-stone-400 outline-none resize-none font-serif leading-relaxed text-lg text-stone-700"
-                  placeholder="Imagine you are teaching a child..."
+                  className="w-full p-4 h-64 bg-[#FAF9F6] border border-stone-200 focus:border-stone-800 outline-none resize-none font-serif leading-relaxed text-lg text-stone-700"
+                  placeholder="Imagine you are teaching a child. Use simple language..."
                   value={feynmanExplanation}
                   onChange={(e) => setFeynmanExplanation(e.target.value)}
                 />
               </div>
               
-              <button 
-                onClick={handleFeynmanSubmit}
-                disabled={isAnalyzing || !feynmanExplanation}
-                className="w-full bg-stone-800 text-white py-4 font-bold text-sm uppercase tracking-widest hover:bg-stone-700 disabled:opacity-50 flex items-center justify-center gap-3"
-              >
-                {isAnalyzing ? <Loader2 className="animate-spin" size={18} /> : <MessageSquare size={18} />}
-                Critique My Explanation
-              </button>
-            </div>
-
-            {aiAnalysis && (
-              <div className="mt-10 p-8 bg-[#F5F2EB] border border-stone-200 animate-fade-in relative">
-                <div className="absolute -top-3 -left-3 bg-stone-800 text-white p-2 shadow-sm">
-                   <Brain size={20} />
-                </div>
-                <h4 className="font-serif font-bold text-stone-800 text-lg mb-4 ml-4">Tutor Feedback</h4>
-                <div className="prose prose-stone text-stone-700 font-serif leading-loose whitespace-pre-line">
-                  {aiAnalysis}
-                </div>
+              <div className="flex justify-end">
+                  <div className="text-xs text-stone-400 italic font-serif">
+                      Self-reflection is the highest form of critique.
+                  </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

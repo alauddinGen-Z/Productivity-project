@@ -1,8 +1,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Task, TaskQuadrant, WeeklySchedule } from '../types';
-import { Plus, LayoutGrid, List, Filter, CheckSquare, Square, ArrowUpDown, Tag, CornerDownRight, Box, Clock, Calendar, ChevronDown, X, Zap } from 'lucide-react';
-import { estimateTaskDifficulty, simplifyTask } from '../services/geminiService';
+import { Task, TaskQuadrant, WeeklySchedule, TimeBlock } from '../types';
+import { Plus, LayoutGrid, List, Filter, CheckSquare, Square, ArrowUpDown, Tag, CornerDownRight, Box, Clock, Calendar, ChevronDown, X, Zap, BarChart2 } from 'lucide-react';
 import { MatrixTaskItem } from './MatrixTaskItem';
 import { SchedulingModal } from './SchedulingModal';
 
@@ -19,12 +18,13 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskTags, setNewTaskTags] = useState('');
   const [newTaskPurpose, setNewTaskPurpose] = useState('');
+  const [newTaskBlocks, setNewTaskBlocks] = useState(1); // Manual Block Setting
+  
   // New State for Quick Scheduling
   const [newTaskSlot, setNewTaskSlot] = useState<{key: string, label: string, hour: number} | null>(null);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
   
   const [activeView, setActiveView] = useState<'matrix' | 'ivylee'>('matrix');
-  const [loadingAI, setLoadingAI] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('NEWEST');
   
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -71,6 +71,30 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       return slots;
   }, [schedule.ideal, todayKey]);
 
+  // --- Audio Effects ---
+  const playWhoosh = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      // Low frequency sweep for a subtle "air" sound
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(200, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
+      
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+      // Ignore audio errors
+    }
+  }, []);
+
 
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,8 +111,8 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       isFrog: false,
       createdAt: Date.now(),
       tags: tags,
-      purpose: newTaskPurpose, // Explicitly adding intention at creation
-      blocks: 1 // Default to 1, update later via AI
+      purpose: newTaskPurpose,
+      blocks: newTaskBlocks // Use manual setting
     };
     
     setTasks(prev => [...prev, newTask]);
@@ -110,15 +134,8 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     setNewTaskTitle('');
     setNewTaskTags('');
     setNewTaskPurpose('');
+    setNewTaskBlocks(1);
     setNewTaskSlot(null);
-
-    // AI Difficulty Estimation
-    try {
-        const difficulty = await estimateTaskDifficulty(newTask.title);
-        setTasks(prev => prev.map(t => t.id === tempId ? { ...t, blocks: difficulty } : t));
-    } catch (err) {
-        console.error("Failed to estimate difficulty", err);
-    }
   };
 
   const deleteTask = useCallback((id: string) => {
@@ -156,11 +173,25 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     setTasks(prev => prev.map(t => t.id === id ? { ...t, tags } : t));
   }, [setTasks]);
 
-  const handleSimplify = useCallback(async (taskId: string, title: string) => {
-    setLoadingAI(taskId);
-    const steps = await simplifyTask(title);
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: steps.map(s => ({ title: s, completed: false })) } : t));
-    setLoadingAI(null);
+  // --- Manual Subtask Management ---
+  const handleAddSubtask = useCallback((taskId: string, title: string) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id === taskId) {
+        const currentSubtasks = t.subtasks || [];
+        return { ...t, subtasks: [...currentSubtasks, { title, completed: false }] };
+      }
+      return t;
+    }));
+  }, [setTasks]);
+
+  const handleDeleteSubtask = useCallback((taskId: string, index: number) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id === taskId && t.subtasks) {
+        const newSubtasks = t.subtasks.filter((_, i) => i !== index);
+        return { ...t, subtasks: newSubtasks };
+      }
+      return t;
+    }));
   }, [setTasks]);
 
   const toggleSubtask = useCallback((taskId: string, index: number) => {
@@ -190,7 +221,10 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       // Remove old slot if any
       Object.keys(newIdeal).forEach(k => {
           if (newIdeal[k].taskId === schedulingTaskId) {
-              delete newIdeal[k]; 
+              const oldBlock = newIdeal[k];
+              const newBlock = { ...oldBlock };
+              delete newBlock.taskId; // Explicitly remove taskId
+              newIdeal[k] = newBlock;
           }
       });
 
@@ -207,10 +241,13 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
 
   const clearTaskSchedule = () => {
     if (!schedulingTaskId) return;
-    const newIdeal = { ...schedule.ideal };
+    const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
       Object.keys(newIdeal).forEach(k => {
           if (newIdeal[k].taskId === schedulingTaskId) {
-              delete newIdeal[k].taskId;
+              const oldBlock = newIdeal[k];
+              const newBlock = { ...oldBlock };
+              delete newBlock.taskId;
+              newIdeal[k] = newBlock;
           }
       });
     updateSchedule({ ...schedule, ideal: newIdeal });
@@ -220,6 +257,32 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
   const getTaskSlot = (taskId: string) => {
       const entry = Object.entries(schedule.ideal).find(([_, block]) => block.taskId === taskId);
       return entry ? entry[0] : null;
+  };
+
+  // Drag Handlers
+  const handleDrop = (e: React.DragEvent, targetQuadrant: TaskQuadrant) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('bg-stone-50', 'ring-2', 'ring-stone-200');
+    
+    const data = e.dataTransfer.getData('application/json');
+    if (data) {
+        try {
+            const { id, sourceQuadrant } = JSON.parse(data);
+            if (id && sourceQuadrant !== targetQuadrant) {
+                moveTask(id, targetQuadrant);
+                playWhoosh();
+            }
+        } catch (err) { console.error(err); }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('bg-stone-50', 'ring-2', 'ring-stone-200');
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove('bg-stone-50', 'ring-2', 'ring-stone-200');
   };
 
   // Derive unique tags for filter dropdown
@@ -287,8 +350,13 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     const qTasks = sortedQuadrantTasks[quadrant];
 
     return (
-      <div className={`p-5 rounded-sm border-t-4 ${colorClass} bg-white shadow-sm flex flex-col h-full`}>
-        <div className="mb-6 border-b border-stone-100 pb-2 flex justify-between items-start">
+      <div 
+        onDrop={(e) => handleDrop(e, quadrant)}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`p-5 rounded-sm border-t-4 ${colorClass} bg-white shadow-sm flex flex-col h-full transition-colors duration-200`}
+      >
+        <div className="mb-6 border-b border-stone-100 pb-2 flex justify-between items-start pointer-events-none">
           <div>
             <h3 className="font-serif font-bold text-stone-800 text-lg">{title}</h3>
             <p className="text-[10px] uppercase tracking-wider text-stone-400">{description}</p>
@@ -299,7 +367,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
         </div>
         <div className="flex-1 space-y-3 overflow-y-auto max-h-64 pr-2 custom-scrollbar">
           {qTasks.length === 0 && (
-            <div className="h-full flex items-center justify-center text-stone-300 text-sm italic font-serif">
+            <div className="h-full flex items-center justify-center text-stone-300 text-sm italic font-serif pointer-events-none">
               {selectedTags.length > 0 ? 'No tasks with these tags' : 'Empty'}
             </div>
           )}
@@ -312,11 +380,11 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
               toggleFrog={toggleFrog}
               deleteTask={deleteTask}
               moveTask={moveTask}
-              handleSimplify={handleSimplify}
+              addSubtask={handleAddSubtask}
+              deleteSubtask={handleDeleteSubtask}
               toggleSubtask={toggleSubtask}
               updatePurpose={updatePurpose}
               updateTags={updateTags}
-              loadingAI={loadingAI}
               scheduledSlot={getTaskSlot(task.id)}
               onOpenScheduler={handleOpenScheduler}
             />
@@ -444,9 +512,9 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                       />
                    </div>
 
-                   <div className="flex items-center gap-4">
+                   <div className="flex items-center gap-4 flex-wrap">
                       {/* Tags Input */}
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                           <Tag size={14} className="text-stone-300 flex-shrink-0 ml-1" />
                           <input 
                             type="text"
@@ -455,6 +523,25 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                             placeholder="Tags (comma separated)..."
                             className="w-full bg-transparent text-xs text-stone-500 focus:outline-none placeholder:text-stone-300 ml-1"
                           />
+                      </div>
+                      
+                      {/* Manual Difficulty / Blocks Selector */}
+                      <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100">
+                        <BarChart2 size={12} className="text-stone-400" />
+                        <span className="text-xs text-stone-400 font-bold uppercase">Difficulty:</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map(level => (
+                             <button
+                                key={level}
+                                type="button"
+                                onClick={() => setNewTaskBlocks(level)}
+                                className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded transition-colors ${newTaskBlocks === level ? 'bg-stone-800 text-white' : 'bg-white text-stone-400 border border-stone-200 hover:border-stone-400'}`}
+                             >
+                               {level}
+                             </button>
+                          ))}
+                        </div>
+                        <span className="text-[9px] text-stone-400 ml-1">Blocks</span>
                       </div>
 
                       {/* Quick Schedule Selector */}
