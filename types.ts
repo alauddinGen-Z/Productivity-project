@@ -6,6 +6,11 @@ export enum TaskQuadrant {
   DELETE = 'DELETE', // Q4
 }
 
+export interface Subtask {
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -13,7 +18,10 @@ export interface Task {
   quadrant: TaskQuadrant;
   isFrog: boolean; // "Eat the Frog"
   createdAt: number;
-  subtasks?: string[]; // For "Swiss Cheese" method
+  purpose?: string; // The "Why" / Niyyah connection
+  subtasks?: Subtask[]; // For "Swiss Cheese" method
+  tags?: string[]; // Organization tags
+  blocks: number; // Gamification value
 }
 
 export interface Goal {
@@ -42,6 +50,7 @@ export type BlockCategory = 'DEEP' | 'SHALLOW' | 'HEALTH' | 'LIFE' | 'REST';
 export interface TimeBlock {
   category: BlockCategory;
   label: string;
+  taskId?: string; // Link to a specific task
 }
 
 export interface WeeklySchedule {
@@ -49,17 +58,27 @@ export interface WeeklySchedule {
   ideal: Record<string, TimeBlock>;
 }
 
+export interface RewardItem {
+  id: string;
+  title: string;
+  cost: number;
+  icon: string;
+  description?: string;
+}
+
 export interface AppState {
   userName: string;
   theThing: string;
   celebrationVision: string; // 12-month vision
   currentNiyyah: string; // Intention
+  blockBalance: number; // Gamification Currency
   tasks: Task[];
   goals: Goal[];
   dailyQuests: DailyQuests;
   flashcards: Flashcard[];
   reflections: { date: string; content: string }[];
   weeklySchedule: WeeklySchedule;
+  customRewards: RewardItem[];
 }
 
 export const INITIAL_STATE: AppState = {
@@ -67,7 +86,24 @@ export const INITIAL_STATE: AppState = {
   theThing: '',
   celebrationVision: '',
   currentNiyyah: '',
-  tasks: [],
+  blockBalance: 0,
+  tasks: [
+    {
+      id: 'init-task-1',
+      title: 'Create initial component structure',
+      completed: false,
+      quadrant: TaskQuadrant.DO,
+      isFrog: false,
+      createdAt: Date.now(),
+      purpose: 'To build a solid foundation for the project.',
+      tags: ['dev', 'setup'],
+      blocks: 1,
+      subtasks: [
+        { title: 'Define component props', completed: false },
+        { title: 'Set up basic JSX layout', completed: false }
+      ]
+    }
+  ],
   goals: [],
   dailyQuests: {
     work: { title: '', completed: false },
@@ -77,4 +113,5 @@ export const INITIAL_STATE: AppState = {
   flashcards: [],
   reflections: [],
   weeklySchedule: { current: {}, ideal: {} },
+  customRewards: [],
 };

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Sparkles, Target, Calendar, Heart, Quote, PenLine } from 'lucide-react';
-import { AppState, DailyQuests } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Target, Calendar, Heart, Quote, PenLine, CheckSquare, Clock } from 'lucide-react';
+import { AppState, DailyQuests, TimeBlock } from '../types';
 
 interface DashboardProps {
   state: AppState;
@@ -10,6 +10,13 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
   const [isEditingVision, setIsEditingVision] = useState(false);
   const [niyyahInput, setNiyyahInput] = useState(state.currentNiyyah);
+  const [todayKey, setTodayKey] = useState<string>('Mon');
+
+  useEffect(() => {
+    // Get current day abbreviation (Mon, Tue, etc.)
+    const day = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+    setTodayKey(day);
+  }, []);
 
   const toggleQuest = (category: keyof DailyQuests) => {
     updateState({
@@ -35,6 +42,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
   const saveNiyyah = () => {
     updateState({ currentNiyyah: niyyahInput });
   };
+
+  // --- Logic for Scheduled Blocks ---
+  // 1. Get Ideal blocks for today
+  // 2. Check if they exist in 'current' (Reality)
+  const getDailySchedule = () => {
+    const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
+    
+    return hours.map(hour => {
+      const key = `${todayKey}-${hour}`;
+      const idealBlock = state.weeklySchedule.ideal[key];
+      const realBlock = state.weeklySchedule.current[key];
+      
+      if (!idealBlock) return null;
+
+      return {
+        hour,
+        key,
+        ideal: idealBlock,
+        isCompleted: !!realBlock // It's "completed" if it exists in Reality map
+      };
+    }).filter(Boolean) as { hour: number, key: string, ideal: TimeBlock, isCompleted: boolean }[];
+  };
+
+  const toggleScheduleBlock = (key: string, idealBlock: TimeBlock) => {
+    const currentMap = { ...state.weeklySchedule.current };
+    
+    if (currentMap[key]) {
+      // Remove from reality (uncheck)
+      delete currentMap[key];
+    } else {
+      // Add to reality (check)
+      currentMap[key] = idealBlock;
+    }
+
+    updateState({
+      weeklySchedule: {
+        ...state.weeklySchedule,
+        current: currentMap
+      }
+    });
+  };
+
+  const scheduledItems = getDailySchedule();
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -71,26 +121,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* The Thing Focus Box */}
-        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 relative">
-           <div className="absolute top-0 left-0 w-full h-1 bg-stone-100"></div>
-           <div className="absolute top-4 right-4 text-stone-300">
-            <Target size={20} />
+        
+        {/* Today's Blueprint (Linked from Schedule) */}
+        <div className="bg-white p-0 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-1 flex flex-col h-96">
+           <div className="p-6 border-b border-stone-100 bg-[#FAF9F6]">
+             <div className="flex items-center gap-2 mb-1">
+                <Clock size={18} className="text-stone-400" />
+                <h2 className="text-lg font-serif font-bold text-stone-800">Today's Blueprint</h2>
+             </div>
+             <p className="text-[10px] uppercase tracking-wider text-stone-400">
+               {todayKey}'s Plan • Click to Complete
+             </p>
            </div>
-          <h2 className="text-xl font-serif font-bold text-stone-800 mb-1">The "Thing"</h2>
-          <p className="text-xs uppercase tracking-wider text-stone-400 mb-6">
-            Intrinsic Fulfillment
-          </p>
-          <textarea
-            value={state.theThing}
-            onChange={(e) => updateState({ theThing: e.target.value })}
-            placeholder="What would you do even if you weren't paid?"
-            className="w-full h-40 p-4 bg-[#FAF9F6] rounded-sm border-l-2 border-amber-200 focus:border-amber-400 outline-none resize-none text-stone-700 font-serif leading-relaxed text-sm"
-          />
+           
+           <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+             {scheduledItems.length === 0 ? (
+               <div className="text-center mt-10 text-stone-400 font-serif italic text-sm">
+                 No schedule planned for {todayKey}.<br/>Go to "Time Structure" to plan.
+               </div>
+             ) : (
+               scheduledItems.map((item) => (
+                 <div 
+                   key={item.key}
+                   onClick={() => toggleScheduleBlock(item.key, item.ideal)}
+                   className={`flex items-center gap-3 p-3 rounded-sm border cursor-pointer transition-all group ${
+                     item.isCompleted 
+                       ? 'bg-stone-50 border-stone-200 opacity-60' 
+                       : 'bg-white border-stone-200 hover:border-stone-800 hover:shadow-sm'
+                   }`}
+                 >
+                   <div className="w-10 text-xs font-bold text-stone-400 font-mono text-right">
+                     {item.hour}:00
+                   </div>
+                   <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${
+                     item.isCompleted ? 'bg-stone-800 border-stone-800' : 'border-stone-300'
+                   }`}>
+                     {item.isCompleted && <CheckSquare size={10} className="text-white" />}
+                   </div>
+                   <div className={`flex-1 text-sm font-serif ${item.isCompleted ? 'line-through text-stone-400' : 'text-stone-700'}`}>
+                     {item.ideal.label}
+                   </div>
+                   <div className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-stone-100 text-stone-500`}>
+                     {item.ideal.category.substring(0,1)}
+                   </div>
+                 </div>
+               ))
+             )}
+           </div>
         </div>
 
         {/* 12-Month Celebration */}
-        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2 relative">
+        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2 relative h-96 flex flex-col">
            <div className="absolute top-0 left-0 w-full h-1 bg-stone-100"></div>
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -108,11 +189,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
             <textarea
               value={state.celebrationVision}
               onChange={(e) => updateState({ celebrationVision: e.target.value })}
-              className="w-full h-40 p-4 bg-[#FAF9F6] rounded-sm border border-stone-200 focus:border-stone-400 outline-none font-serif text-stone-700 leading-7"
+              className="w-full flex-1 p-4 bg-[#FAF9F6] rounded-sm border border-stone-200 focus:border-stone-400 outline-none font-serif text-stone-700 leading-7 resize-none"
               placeholder="Describe exactly what you are celebrating one year from now..."
             />
           ) : (
-            <div className="w-full h-40 p-6 bg-[#FAF9F6] rounded-sm border border-stone-100 overflow-y-auto font-serif text-stone-700 leading-7 italic relative">
+            <div className="w-full flex-1 p-6 bg-[#FAF9F6] rounded-sm border border-stone-100 overflow-y-auto font-serif text-stone-700 leading-7 italic relative">
               {/* Paper lines decoration */}
               <div className="absolute inset-0 pointer-events-none lined-paper opacity-30"></div>
               <div className="relative z-10">
@@ -127,47 +208,64 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
         </div>
       </div>
 
-      {/* Daily Side Quests */}
-      <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 relative">
-        <div className="absolute top-0 left-0 w-full h-1 bg-emerald-900/10"></div>
-        <div className="flex items-center gap-3 mb-8">
-          <Calendar className="text-emerald-800" size={20} />
-          <h2 className="text-xl font-serif font-bold text-stone-800">Daily Side Quests</h2>
-          <span className="text-[10px] uppercase tracking-widest border border-emerald-800 text-emerald-900 px-2 py-0.5 rounded-full ml-2">
-            Happiness of Pursuit
-          </span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* The Thing Focus Box */}
+        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 relative">
+           <div className="absolute top-0 left-0 w-full h-1 bg-stone-100"></div>
+           <div className="absolute top-4 right-4 text-stone-300">
+            <Target size={20} />
+           </div>
+          <h2 className="text-xl font-serif font-bold text-stone-800 mb-1">The "Thing"</h2>
+          <p className="text-xs uppercase tracking-wider text-stone-400 mb-6">
+            Intrinsic Fulfillment
+          </p>
+          <textarea
+            value={state.theThing}
+            onChange={(e) => updateState({ theThing: e.target.value })}
+            placeholder="What would you do even if you weren't paid?"
+            className="w-full h-32 p-4 bg-[#FAF9F6] rounded-sm border-l-2 border-amber-200 focus:border-amber-400 outline-none resize-none text-stone-700 font-serif leading-relaxed text-sm"
+          />
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {(['work', 'health', 'relationship'] as const).map((cat) => (
-            <div key={cat} className="group relative bg-[#fffef0] p-1 shadow-sm rotate-0 hover:-rotate-1 transition-transform duration-300">
-              {/* Sticky note tape look */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-yellow-200/50 rotate-1"></div>
-              
-              <div className="h-full p-5 border border-stone-100 flex flex-col">
-                <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4 border-b border-stone-200 pb-2">
-                  {cat}
-                </div>
-                <input
-                  type="text"
-                  value={state.dailyQuests[cat].title}
-                  onChange={(e) => updateQuestTitle(cat, e.target.value)}
-                  placeholder="..."
-                  className={`w-full bg-transparent pb-1 mb-4 focus:outline-none font-serif text-lg ${state.dailyQuests[cat].completed ? 'line-through text-stone-300' : 'text-stone-800'}`}
-                />
-                <button
-                  onClick={() => toggleQuest(cat)}
-                  className={`mt-auto w-full py-2 text-xs font-bold uppercase tracking-widest transition-all border ${
-                    state.dailyQuests[cat].completed
-                      ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                      : 'bg-white border-stone-200 text-stone-400 hover:border-stone-400 hover:text-stone-600'
-                  }`}
-                >
-                  {state.dailyQuests[cat].completed ? 'Done' : 'Complete'}
-                </button>
-              </div>
+
+        {/* Daily Side Quests */}
+        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-900/10"></div>
+          <div className="flex items-center gap-3 mb-8">
+            <Calendar className="text-emerald-800" size={20} />
+            <div>
+               <h2 className="text-xl font-serif font-bold text-stone-800">Daily Side Quests</h2>
+               <p className="text-xs uppercase tracking-wider text-stone-400">Happiness of Pursuit</p>
             </div>
-          ))}
+          </div>
+          
+          <div className="space-y-4">
+            {(['work', 'health', 'relationship'] as const).map((cat) => (
+              <div key={cat} className="flex items-center gap-4">
+                 <div className="w-24 text-[10px] font-bold text-stone-400 uppercase tracking-widest text-right">
+                    {cat}
+                 </div>
+                 <div className="flex-1 relative group">
+                    <input
+                      type="text"
+                      value={state.dailyQuests[cat].title}
+                      onChange={(e) => updateQuestTitle(cat, e.target.value)}
+                      placeholder="..."
+                      className={`w-full bg-[#FAF9F6] px-3 py-2 border-b border-stone-200 focus:border-emerald-500 outline-none font-serif text-sm transition-colors ${state.dailyQuests[cat].completed ? 'text-stone-400 line-through' : 'text-stone-800'}`}
+                    />
+                    <button
+                      onClick={() => toggleQuest(cat)}
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full transition-all ${
+                        state.dailyQuests[cat].completed 
+                        ? 'bg-emerald-600 text-white opacity-100' 
+                        : 'bg-stone-200 text-stone-400 opacity-0 group-hover:opacity-100 hover:bg-emerald-100 hover:text-emerald-600'
+                      }`}
+                    >
+                       <CheckSquare size={12} />
+                    </button>
+                 </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

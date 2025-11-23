@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 export const simplifyTask = async (taskTitle: string): Promise<string[]> => {
@@ -57,5 +58,34 @@ export const analyzeFeynman = async (concept: string, explanation: string): Prom
   } catch (error) {
     console.error("AI Error:", error);
     return "Unable to analyze at this moment. Please try again later.";
+  }
+};
+
+export const estimateTaskDifficulty = async (taskTitle: string): Promise<number> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return 1; // Default to 1 block if no API
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Analyze the difficulty of this task: "${taskTitle}".
+      Assign a "Block Value" from 1 to 3.
+      1 = Simple, quick (e.g., email, call).
+      2 = Moderate, takes thought (e.g., write draft, fix bug).
+      3 = Complex, deep work (e.g., design system, strategic plan).
+      
+      Return JSON: { "value": number }`,
+      config: {
+        responseMimeType: 'application/json',
+      }
+    });
+
+    const text = response.text;
+    if (!text) return 1;
+    const json = JSON.parse(text);
+    return Math.min(Math.max(json.value, 1), 3);
+  } catch (error) {
+    return 1; // Fallback
   }
 };

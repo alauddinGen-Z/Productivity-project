@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -15,16 +15,35 @@ import {
   Download,
   CheckCircle2,
   User,
-  Loader2
+  Loader2,
+  Check,
+  PieChart,
+  ShoppingBag,
+  Box
 } from 'lucide-react';
 
 import { AppState, INITIAL_STATE, Task, Flashcard, WeeklySchedule } from './types';
-import { Dashboard } from './components/Dashboard';
-import { TaskMatrix } from './components/TaskMatrix';
-import { FocusLayer } from './components/FocusLayer';
-import { PsychologyLayer } from './components/PsychologyLayer';
-import { TimeStructurer } from './components/TimeStructurer';
+import { IntroAnimation } from './components/IntroAnimation';
 import { supabase } from './services/supabaseClient';
+
+// --- Lazy Load Components with Prefetch Capability ---
+const loadDashboard = () => import('./components/Dashboard');
+const loadTasks = () => import('./components/TaskMatrix');
+const loadFocus = () => import('./components/FocusLayer');
+const loadPsych = () => import('./components/PsychologyLayer');
+const loadTime = () => import('./components/TimeStructurer');
+const loadAnalytics = () => import('./components/AnalyticsLayer');
+const loadReview = () => import('./components/WeeklyReview');
+const loadRewards = () => import('./components/RewardShop');
+
+const Dashboard = lazy(() => loadDashboard().then(module => ({ default: module.Dashboard })));
+const TaskMatrix = lazy(() => loadTasks().then(module => ({ default: module.TaskMatrix })));
+const FocusLayer = lazy(() => loadFocus().then(module => ({ default: module.FocusLayer })));
+const PsychologyLayer = lazy(() => loadPsych().then(module => ({ default: module.PsychologyLayer })));
+const TimeStructurer = lazy(() => loadTime().then(module => ({ default: module.TimeStructurer })));
+const AnalyticsLayer = lazy(() => loadAnalytics().then(module => ({ default: module.AnalyticsLayer })));
+const WeeklyReview = lazy(() => loadReview().then(module => ({ default: module.WeeklyReview })));
+const RewardShop = lazy(() => loadRewards().then(module => ({ default: module.RewardShop })));
 
 // --- Types for Auth ---
 interface UserSession {
@@ -33,6 +52,7 @@ interface UserSession {
 }
 
 const USER_KEY = 'intentional_current_user';
+const LAST_DATE_KEY = 'intentional_last_date';
 
 // --- Supabase Helpers ---
 
@@ -61,15 +81,17 @@ const loadFromSupabase = async (email: string, name: string): Promise<AppState> 
     }
 
     // 3. Fetch related data
-    const [tasksReq, questsReq, cardsReq] = await Promise.all([
+    const [tasksReq, questsReq, cardsReq, reflectionsReq] = await Promise.all([
       supabase.from('tasks').select('*').eq('email', email),
       supabase.from('daily_quests').select('*').eq('email', email).single(),
-      supabase.from('flashcards').select('*').eq('email', email)
+      supabase.from('flashcards').select('*').eq('email', email),
+      supabase.from('reflections').select('*').eq('email', email)
     ]);
 
     const tasks = tasksReq.data || [];
     const quests = questsReq.data || { work_title: '', health_title: '', relationship_title: '' }; // Fallback
     const flashcards = cardsReq.data || [];
+    const reflections = reflectionsReq.data || [];
 
     // 4. Construct AppState
     return {
@@ -77,12 +99,19 @@ const loadFromSupabase = async (email: string, name: string): Promise<AppState> 
       theThing: profile.the_thing || '',
       celebrationVision: profile.celebration_vision || '',
       currentNiyyah: profile.current_niyyah || '',
+      blockBalance: profile.block_balance || 0, // Load balance
       tasks: tasks.map((t: any) => ({
         ...t,
         isFrog: t.is_frog,
         createdAt: t.created_at,
+        purpose: t.purpose,
+        tags: Array.isArray(t.tags) ? t.tags : [],
+        blocks: t.blocks || 1, // Load blocks or default to 1
+        subtasks: Array.isArray(t.subtasks) 
+          ? t.subtasks.map((st: any) => typeof st === 'string' ? { title: st, completed: false } : st)
+          : undefined
       })),
-      goals: [], // Not implemented in DB separate table yet, kept in-memory or ignored
+      goals: [], 
       dailyQuests: {
         work: { title: quests.work_title || '', completed: quests.work_completed || false },
         health: { title: quests.health_title || '', completed: quests.health_completed || false },
@@ -92,8 +121,12 @@ const loadFromSupabase = async (email: string, name: string): Promise<AppState> 
         ...f,
         nextReview: f.next_review
       })),
-      reflections: [],
-      weeklySchedule: profile.weekly_schedule || { current: {}, ideal: {} }
+      reflections: reflections.map((r: any) => ({
+        date: r.date,
+        content: r.content
+      })),
+      weeklySchedule: profile.weekly_schedule || { current: {}, ideal: {} },
+      customRewards: profile.custom_rewards || []
     };
   } catch (error) {
     console.error('Error loading data:', error);
@@ -103,14 +136,16 @@ const loadFromSupabase = async (email: string, name: string): Promise<AppState> 
 
 const syncToSupabase = async (email: string, data: AppState) => {
   try {
-    // 1. Update Profile
+    // 1. Update Profile (This includes the Weekly Schedule JSON which is critical for syncing dashboard completions)
     await supabase.from('profiles').upsert({
       email,
       name: data.userName,
       the_thing: data.theThing,
       celebration_vision: data.celebrationVision,
       current_niyyah: data.currentNiyyah,
-      weekly_schedule: data.weeklySchedule
+      weekly_schedule: data.weeklySchedule,
+      block_balance: data.blockBalance, // Sync Balance
+      custom_rewards: data.customRewards
     });
 
     // 2. Update Quests
@@ -124,13 +159,7 @@ const syncToSupabase = async (email: string, data: AppState) => {
       relationship_completed: data.dailyQuests.relationship.completed,
     });
 
-    // 3. Sync Tasks (Handle deletions is tricky with simple upsert, so we delete all not in current list? 
-    // Or just upsert current list. For simplicity in this prototype, we upsert current. 
-    // To handle deletes, we'd need to track deleted IDs or fetch-then-diff. 
-    // Simplified Approach: Upsert all current. (Deletions won't persist if strictly offline logic, but here we just push state).
-    // BETTER: Delete all for user then re-insert? Too risky.
-    // BETTER: Get all DB IDs, find difference, delete those.
-    
+    // 3. Sync Tasks
     const { data: dbTasks } = await supabase.from('tasks').select('id').eq('email', email);
     if (dbTasks) {
       const currentIds = new Set(data.tasks.map(t => t.id));
@@ -147,6 +176,9 @@ const syncToSupabase = async (email: string, data: AppState) => {
       completed: t.completed,
       quadrant: t.quadrant,
       is_frog: t.isFrog,
+      purpose: t.purpose,
+      tags: t.tags,
+      blocks: t.blocks, // Sync Blocks Value
       created_at: t.createdAt,
       subtasks: t.subtasks
     }));
@@ -154,7 +186,7 @@ const syncToSupabase = async (email: string, data: AppState) => {
         await supabase.from('tasks').upsert(tasksToUpsert);
     }
 
-    // 4. Sync Flashcards (Same logic)
+    // 4. Sync Flashcards
     const { data: dbCards } = await supabase.from('flashcards').select('id').eq('email', email);
     if (dbCards) {
       const currentIds = new Set(data.flashcards.map(c => c.id));
@@ -176,6 +208,17 @@ const syncToSupabase = async (email: string, data: AppState) => {
         await supabase.from('flashcards').upsert(cardsToUpsert);
     }
 
+    // 5. Sync Reflections (Append Only logic mostly, but here we upsert based on composite key if possible, or just insert new ones)
+    const reflectionsToUpsert = data.reflections.map(r => ({
+      email,
+      date: r.date,
+      content: r.content
+    }));
+    if (reflectionsToUpsert.length > 0) {
+      // NOTE: requires a unique constraint on (email, date) in Supabase to work as upsert correctly
+      await supabase.from('reflections').upsert(reflectionsToUpsert, { onConflict: 'email, date' });
+    }
+
   } catch (error) {
     console.error('Sync Error:', error);
     throw error;
@@ -184,14 +227,15 @@ const syncToSupabase = async (email: string, data: AppState) => {
 
 // --- Components ---
 
-const LoginScreen: React.FC<{ onLogin: (name: string, email: string) => void, loading: boolean }> = ({ onLogin, loading }) => {
+const LoginScreen: React.FC<{ onLogin: (name: string, email: string, remember: boolean) => void, loading: boolean }> = ({ onLogin, loading }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [remember, setRemember] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() && email.trim()) {
-      onLogin(name, email);
+      onLogin(name, email, remember);
     }
   };
 
@@ -213,6 +257,7 @@ const LoginScreen: React.FC<{ onLogin: (name: string, email: string) => void, lo
             <input
               type="text"
               required
+              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full p-4 bg-[#FAF9F6] border border-stone-200 focus:border-stone-800 outline-none font-serif text-lg text-stone-800 transition-colors"
@@ -232,6 +277,17 @@ const LoginScreen: React.FC<{ onLogin: (name: string, email: string) => void, lo
               disabled={loading}
             />
           </div>
+
+          <div 
+            className="flex items-center gap-3 pt-2 cursor-pointer group"
+            onClick={() => setRemember(!remember)}
+          >
+            <div className={`w-5 h-5 border rounded-sm flex items-center justify-center transition-all ${remember ? 'bg-stone-800 border-stone-800 text-white' : 'bg-white border-stone-300 group-hover:border-stone-400'}`}>
+              {remember && <Check size={14} strokeWidth={3} />}
+            </div>
+            <span className="text-sm font-serif text-stone-600 select-none">Remember this device</span>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -257,16 +313,19 @@ const Navigation: React.FC<{
   onLogout: () => void;
   onExport: () => void;
   userName: string;
-}> = ({ mobileOpen, setMobileOpen, onLogout, onExport, userName }) => {
+  blockBalance: number;
+}> = ({ mobileOpen, setMobileOpen, onLogout, onExport, userName, blockBalance }) => {
   const location = useLocation();
   
   const navItems = [
-    { path: '/', label: 'Purpose & Dashboard', icon: LayoutDashboard },
-    { path: '/tasks', label: 'Tasks & Process', icon: ListTodo },
-    { path: '/plan', label: 'Time Structure', icon: CalendarClock },
-    { path: '/focus', label: 'Focus Zone', icon: Zap },
-    { path: '/psych', label: 'Psychology & Learn', icon: BrainCircuit },
-    { path: '/review', label: 'Review & Gain', icon: BarChart3 },
+    { path: '/', label: 'Purpose & Dashboard', icon: LayoutDashboard, loader: loadDashboard },
+    { path: '/tasks', label: 'Tasks & Process', icon: ListTodo, loader: loadTasks },
+    { path: '/plan', label: 'Time Structure', icon: CalendarClock, loader: loadTime },
+    { path: '/focus', label: 'Focus Zone', icon: Zap, loader: loadFocus },
+    { path: '/rewards', label: 'Reward Shop', icon: ShoppingBag, loader: loadRewards },
+    { path: '/psych', label: 'Psychology & Learn', icon: BrainCircuit, loader: loadPsych },
+    { path: '/graphics', label: 'Progress & Insights', icon: PieChart, loader: loadAnalytics },
+    { path: '/review', label: 'Weekly Review', icon: BarChart3, loader: loadReview },
   ];
 
   return (
@@ -285,14 +344,23 @@ const Navigation: React.FC<{
       </div>
 
       <div className="px-6 py-6">
-        <div className="flex items-center gap-3 p-3 bg-[#35312e] rounded-sm border border-stone-700/50">
-          <div className="w-8 h-8 rounded-full bg-stone-700 flex items-center justify-center text-amber-500">
-            <User size={14} />
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-xs text-stone-500 uppercase tracking-wider">Traveler</p>
-            <p className="text-sm text-stone-200 font-medium truncate">{userName}</p>
-          </div>
+        <div className="flex items-center justify-between p-3 bg-[#35312e] rounded-sm border border-stone-700/50">
+           <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-stone-700 flex items-center justify-center text-amber-500">
+                <User size={14} />
+             </div>
+             <div className="overflow-hidden">
+                <p className="text-xs text-stone-500 uppercase tracking-wider">Traveler</p>
+                <p className="text-sm text-stone-200 font-medium truncate max-w-[80px]">{userName}</p>
+             </div>
+           </div>
+           
+           <div className="flex flex-col items-end">
+             <div className="flex items-center gap-1 text-emerald-400">
+                <Box size={12} />
+                <span className="font-mono font-bold text-sm">{blockBalance}</span>
+             </div>
+           </div>
         </div>
       </div>
 
@@ -305,6 +373,7 @@ const Navigation: React.FC<{
               key={item.path}
               to={item.path}
               onClick={() => setMobileOpen(false)}
+              onMouseEnter={() => item.loader()} // Prefetch on hover for faster perceived performance
               className={`flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200 group ${
                 isActive 
                   ? 'bg-[#FAF9F6] text-stone-900 shadow-sm' 
@@ -338,40 +407,50 @@ const Navigation: React.FC<{
   );
 };
 
-const ReviewPlaceholder: React.FC = () => (
-  <div className="bg-white p-10 rounded-sm shadow-sm border border-stone-200 text-center max-w-3xl mx-auto mt-10">
-    <BarChart3 size={48} className="mx-auto text-stone-400 mb-6" />
-    <h2 className="text-3xl font-serif font-bold text-stone-800">Weekly Reflection</h2>
-    <p className="text-stone-500 mt-2 mb-8 font-serif italic">Measure the Gain, not the Gap.</p>
-    
-    <div className="bg-paper-dark p-8 rounded-sm text-left space-y-8 border border-stone-200">
-      <div>
-        <p className="font-serif font-bold text-lg text-stone-700 mb-2">1. Three Wins This Week</p>
-        <div className="space-y-2">
-          <input className="w-full bg-transparent border-b border-stone-300 focus:border-stone-600 outline-none py-2 text-stone-700 placeholder:text-stone-400 font-serif" placeholder="Win 1..." />
-          <input className="w-full bg-transparent border-b border-stone-300 focus:border-stone-600 outline-none py-2 text-stone-700 placeholder:text-stone-400 font-serif" placeholder="Win 2..." />
-          <input className="w-full bg-transparent border-b border-stone-300 focus:border-stone-600 outline-none py-2 text-stone-700 placeholder:text-stone-400 font-serif" placeholder="Win 3..." />
-        </div>
-      </div>
-      
-      <div>
-        <p className="font-serif font-bold text-lg text-stone-700 mb-2">2. Niyyah Alignment Check</p>
-        <textarea className="w-full bg-transparent border-b border-stone-300 focus:border-stone-600 outline-none py-2 h-20 resize-none text-stone-700 placeholder:text-stone-400 font-serif" placeholder="Did my actions align with my intentions?"></textarea>
-      </div>
+const AnimatedRoutes: React.FC<{
+  state: AppState;
+  updateState: (updates: Partial<AppState>) => void;
+  updateTasks: (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => void;
+  updateSchedule: (schedule: WeeklySchedule) => void;
+  toggleTask: (id: string) => void;
+}> = ({ state, updateState, updateTasks, updateSchedule, toggleTask }) => {
+  const location = useLocation();
+
+  return (
+    <div key={location.pathname} className="animate-fade-slide">
+      <Routes location={location}>
+        <Route path="/" element={<Dashboard state={state} updateState={updateState} />} />
+        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} />} />
+        <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} />} />
+        <Route path="/psych" element={<PsychologyLayer flashcards={state.flashcards} updateState={updateState} />} />
+        <Route path="/graphics" element={<AnalyticsLayer state={state} />} />
+        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} />} />
+        <Route path="/review" element={<WeeklyReview state={state} updateState={updateState} />} />
+        <Route path="/rewards" element={<RewardShop state={state} updateState={updateState} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
-  </div>
-);
+  );
+};
 
 const App: React.FC = () => {
   const [userSession, setUserSession] = useState<UserSession | null>(() => {
-    const saved = localStorage.getItem(USER_KEY);
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const local = localStorage.getItem(USER_KEY);
+      if (local) return JSON.parse(local);
+      const session = sessionStorage.getItem(USER_KEY);
+      if (session) return JSON.parse(session);
+    } catch (e) {
+      console.error("Failed to parse session", e);
+    }
+    return null;
   });
 
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   // Initial Data Load
   useEffect(() => {
@@ -379,7 +458,28 @@ const App: React.FC = () => {
       setIsLoginLoading(true);
       loadFromSupabase(userSession.email, userSession.name)
         .then(data => {
-          setState(data);
+          // --- Logical Connection: Daily Reset Logic ---
+          // Check if it's a new day to reset daily quests
+          const today = new Date().toDateString();
+          const lastDate = localStorage.getItem(LAST_DATE_KEY);
+          
+          let finalData = data;
+          
+          if (lastDate !== today) {
+             // It's a new day (or first time), reset quests
+             finalData = {
+               ...data,
+               dailyQuests: {
+                  work: { ...data.dailyQuests.work, completed: false },
+                  health: { ...data.dailyQuests.health, completed: false },
+                  relationship: { ...data.dailyQuests.relationship, completed: false },
+               }
+             };
+             // Update local tracking
+             localStorage.setItem(LAST_DATE_KEY, today);
+          }
+
+          setState(finalData);
           setIsLoginLoading(false);
         })
         .catch(() => setIsLoginLoading(false));
@@ -389,7 +489,6 @@ const App: React.FC = () => {
   // Auto-Save with Debounce
   useEffect(() => {
     if (userSession && !isLoginLoading) {
-      // Only save if state is effectively different from initial empty state to avoid overwriting on load
       if (state === INITIAL_STATE && state.tasks.length === 0 && !state.theThing) return;
 
       setSaveStatus('saving');
@@ -397,22 +496,32 @@ const App: React.FC = () => {
         syncToSupabase(userSession.email, state)
           .then(() => setSaveStatus('saved'))
           .catch(() => setSaveStatus('error'));
-      }, 2000); // Increased debounce time to 2s to reduce API calls
+      }, 2000); 
 
       return () => clearTimeout(timer);
     }
   }, [state, userSession, isLoginLoading]);
 
-  const handleLogin = async (name: string, email: string) => {
+  const handleLogin = async (name: string, email: string, remember: boolean) => {
     setIsLoginLoading(true);
     const session = { name, email };
-    localStorage.setItem(USER_KEY, JSON.stringify(session));
+    
+    if (remember) {
+      localStorage.setItem(USER_KEY, JSON.stringify(session));
+      sessionStorage.removeItem(USER_KEY); 
+    } else {
+      sessionStorage.setItem(USER_KEY, JSON.stringify(session));
+      localStorage.removeItem(USER_KEY); 
+    }
+    
     setUserSession(session);
-    // Effect will trigger load
+    // Show intro on new login
+    setShowIntro(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(USER_KEY);
     setUserSession(null);
     setState(INITIAL_STATE);
   };
@@ -431,8 +540,37 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, ...updates }));
   };
 
-  const updateTasks = (tasks: AppState['tasks']) => updateState({ tasks });
+  const updateTasks = (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => {
+      // Handle both functional and direct updates to match what TaskMatrix expects
+      setState(prev => {
+        const newTasks = typeof tasksOrUpdater === 'function' ? tasksOrUpdater(prev.tasks) : tasksOrUpdater;
+        return { ...prev, tasks: newTasks };
+      });
+  };
+  
   const updateSchedule = (weeklySchedule: WeeklySchedule) => updateState({ weeklySchedule });
+
+  // Function to toggle task completion - now handles BLOCK BALANCE
+  const toggleTask = (id: string) => {
+    setState(prev => {
+        const targetTask = prev.tasks.find(t => t.id === id);
+        if (!targetTask) return prev;
+        
+        const isCompleting = !targetTask.completed;
+        const blockValue = targetTask.blocks || 1;
+        
+        // Add blocks if completing, subtract if undoing
+        const newBalance = isCompleting 
+            ? prev.blockBalance + blockValue 
+            : Math.max(0, prev.blockBalance - blockValue);
+
+        return {
+            ...prev,
+            blockBalance: newBalance,
+            tasks: prev.tasks.map(t => t.id === id ? { ...t, completed: isCompleting } : t)
+        };
+    });
+  };
 
   if (!userSession) {
     return <LoginScreen onLogin={handleLogin} loading={isLoginLoading} />;
@@ -440,6 +578,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
+       {showIntro && <IntroAnimation onComplete={() => setShowIntro(false)} />}
       <div className="flex min-h-screen bg-[#FAF9F6] text-stone-800 font-sans selection:bg-amber-100 selection:text-amber-900">
         <Navigation 
           mobileOpen={mobileOpen} 
@@ -447,6 +586,7 @@ const App: React.FC = () => {
           onLogout={handleLogout}
           onExport={handleExport}
           userName={userSession.name}
+          blockBalance={state.blockBalance}
         />
 
         <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
@@ -487,15 +627,19 @@ const App: React.FC = () => {
           ) : (
             <main className="flex-1 overflow-auto p-4 lg:p-12 bg-[#FAF9F6]">
               <div className="max-w-6xl mx-auto">
-                <Routes>
-                  <Route path="/" element={<Dashboard state={state} updateState={updateState} />} />
-                  <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} />} />
-                  <Route path="/focus" element={<FocusLayer />} />
-                  <Route path="/psych" element={<PsychologyLayer flashcards={state.flashcards} updateState={updateState} />} />
-                  <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} />} />
-                  <Route path="/review" element={<ReviewPlaceholder />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                <Suspense fallback={
+                    <div className="h-64 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-stone-300" />
+                    </div>
+                }>
+                    <AnimatedRoutes 
+                      state={state} 
+                      updateState={updateState} 
+                      updateTasks={updateTasks} 
+                      updateSchedule={updateSchedule} 
+                      toggleTask={toggleTask} 
+                    />
+                </Suspense>
               </div>
             </main>
           )}
