@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Flashcard, AppState } from '../types';
 import { BookOpen, RotateCcw } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
+import { generateId } from '../utils/helpers';
 
 interface FlashcardDeckProps {
   flashcards: Flashcard[];
@@ -19,7 +20,7 @@ export const FlashcardDeck: React.FC<FlashcardDeckProps> = ({ flashcards, update
     if (!newCardQ || !newCardA) return;
     playAdd();
     const newCard: Flashcard = {
-      id: Date.now().toString(),
+      id: generateId(),
       question: newCardQ,
       answer: newCardA,
       nextReview: Date.now(),

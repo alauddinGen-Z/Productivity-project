@@ -40,6 +40,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   // Context Menu State
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, day: string, hour: number } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const { playClick, playSoftClick, playAdd, playDelete, playWhoosh } = useSound();
 
@@ -234,7 +235,17 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     e.preventDefault();
     if (!getBlock(day, hour)) return;
     playSoftClick();
-    setContextMenu({ x: e.clientX, y: e.clientY, day, hour });
+    
+    let x = e.clientX;
+    let y = e.clientY;
+
+    if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+    }
+
+    setContextMenu({ x, y, day, hour });
   };
 
   const renderCell = (day: string, hour: number) => {
@@ -279,7 +290,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6 animate-fade-in relative">
+    <div ref={containerRef} className="h-full flex flex-col space-y-6 animate-fade-in relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200">
         <div className="flex gap-4">
           <button onClick={() => { setView('ideal'); playClick(); }} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'ideal' ? 'border-stone-800 text-stone-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Ideal Week (Vision)</button>
@@ -352,7 +363,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
       {contextMenu && (
         <div 
           ref={contextMenuRef}
-          className="fixed bg-white border border-stone-200 shadow-xl rounded-sm py-1 z-50 w-48 animate-fade-in"
+          className="absolute bg-white border border-stone-200 shadow-xl rounded-sm py-1 z-50 w-48 animate-fade-in"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
             <div className="px-3 py-2 border-b border-stone-100 text-[10px] text-stone-400 uppercase tracking-wider font-bold">

@@ -1,8 +1,24 @@
 
 import { useCallback } from 'react';
 
+// Helper to check if sound is enabled globally
+const isSoundEnabled = () => {
+  try {
+    const stored = localStorage.getItem('intentional_settings');
+    if (stored) {
+      const settings = JSON.parse(stored);
+      return settings.soundEnabled !== false; // Default to true
+    }
+    return true;
+  } catch (e) {
+    return true;
+  }
+};
+
 export const useSound = () => {
   const playTone = useCallback((freq: number, type: 'sine' | 'triangle' | 'square', duration: number, volume: number = 0.1) => {
+    if (!isSoundEnabled()) return;
+
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) return;
@@ -38,6 +54,7 @@ export const useSound = () => {
   }, [playTone]);
 
   const playSuccess = useCallback(() => {
+    if (!isSoundEnabled()) return;
     // Ascending major triad
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -66,6 +83,7 @@ export const useSound = () => {
   }, [playTone]);
 
   const playDelete = useCallback(() => {
+    if (!isSoundEnabled()) return;
     // Descending slide
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -88,6 +106,7 @@ export const useSound = () => {
   }, []);
 
   const playWhoosh = useCallback(() => {
+    if (!isSoundEnabled()) return;
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) return;

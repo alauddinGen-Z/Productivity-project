@@ -1,22 +1,14 @@
 
-import React, { useState } from 'react';
-import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Plus, X, Trash2, Gift, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Plus, X, Trash2, Gift, CheckCircle, Edit2, Save } from 'lucide-react';
 import { AppState, RewardItem } from '../types';
 import { useSound } from '../hooks/useSound';
+import { generateId } from '../utils/helpers';
 
 interface RewardShopProps {
   state: AppState;
   updateState: (updates: Partial<AppState>) => void;
 }
-
-const DEFAULT_REWARDS: RewardItem[] = [
-  { id: 'yt-1', title: 'Watch 1 YouTube Video', cost: 3, icon: 'Youtube', description: 'Guilt-free entertainment.' },
-  { id: 'gm-1', title: '15 Min Game Session', cost: 5, icon: 'Gamepad2', description: 'Quick level up.' },
-  { id: 'cf-1', title: 'Special Coffee/Tea Break', cost: 2, icon: 'Coffee', description: 'Brew something nice.' },
-  { id: 'ms-1', title: 'Listen to 3 Songs', cost: 1, icon: 'Music', description: 'Musical recharge.' },
-  { id: 'wk-1', title: 'Go for a Walk (No Phone)', cost: 4, icon: 'Sun', description: 'Touch grass.' },
-  { id: 'nap-1', title: '20 Min Power Nap', cost: 6, icon: 'Moon', description: 'Reset your brain.' },
-];
 
 const AVAILABLE_ICONS = [
   'Box', 'Coffee', 'Gamepad2', 'Youtube', 'Music', 'Sun', 'Moon', 'ShoppingBag', 'Gift'
@@ -24,15 +16,37 @@ const AVAILABLE_ICONS = [
 
 export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) => {
   const [redeemedId, setRedeemedId] = useState<string | null>(null);
-  const { playSuccess, playClick, playDelete, playAdd } = useSound();
+  const { playSuccess, playClick, playDelete, playAdd, playSoftClick } = useSound();
   
   const [isCreating, setIsCreating] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newCost, setNewCost] = useState(1);
-  const [newDesc, setNewDesc] = useState('');
-  const [newIcon, setNewIcon] = useState('Gift');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Form State
+  const [formData, setFormData] = useState({
+      title: '',
+      cost: 1,
+      description: '',
+      icon: 'Gift'
+  });
 
-  const allRewards = [...DEFAULT_REWARDS, ...state.customRewards];
+  const handleCreateClick = () => {
+    playClick();
+    setFormData({ title: '', cost: 1, description: '', icon: 'Gift' });
+    setEditingId(null);
+    setIsCreating(true);
+  };
+
+  const handleEditClick = (item: RewardItem) => {
+    playClick();
+    setFormData({
+        title: item.title,
+        cost: item.cost,
+        description: item.description || '',
+        icon: item.icon
+    });
+    setEditingId(item.id);
+    setIsCreating(true);
+  };
 
   const redeemReward = (reward: RewardItem) => {
     if (state.blockBalance >= reward.cost) {
@@ -43,33 +57,39 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
     }
   };
 
-  const handleCreateReward = (e: React.FormEvent) => {
+  const handleSaveReward = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!formData.title.trim()) return;
     
     playAdd();
 
-    const newItem: RewardItem = {
-      id: `custom-${Date.now()}`,
-      title: newTitle,
-      cost: Math.max(1, newCost),
-      icon: newIcon,
-      description: newDesc
-    };
-
-    updateState({ customRewards: [...state.customRewards, newItem] });
+    if (editingId) {
+        // Edit existing
+        const updatedShop = state.shopItems.map(item => 
+            item.id === editingId ? { ...item, ...formData } : item
+        );
+        updateState({ shopItems: updatedShop });
+    } else {
+        // Create new with UUID
+        const newItem: RewardItem = {
+            id: generateId(),
+            title: formData.title,
+            cost: Math.max(1, formData.cost),
+            icon: formData.icon,
+            description: formData.description
+        };
+        updateState({ shopItems: [...state.shopItems, newItem] });
+    }
     
     setIsCreating(false);
-    setNewTitle('');
-    setNewCost(1);
-    setNewDesc('');
-    setNewIcon('Gift');
+    setEditingId(null);
   };
 
   const handleDeleteReward = (id: string) => {
-    if (confirm('Delete this custom reward?')) {
+    if (confirm('Delete this reward permanently?')) {
       playDelete();
-      updateState({ customRewards: state.customRewards.filter(r => r.id !== id) });
+      updateState({ shopItems: state.shopItems.filter(r => r.id !== id) });
+      if (editingId === id) setIsCreating(false);
     }
   };
 
@@ -110,10 +130,10 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
 
       <div className="flex justify-end">
         <button 
-          onClick={() => { setIsCreating(true); playClick(); }}
+          onClick={handleCreateClick}
           className="flex items-center gap-2 bg-stone-800 text-white px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-stone-700 transition-colors"
         >
-          <Plus size={16} /> Create Custom Reward
+          <Plus size={16} /> Create Reward
         </button>
       </div>
 
@@ -121,21 +141,22 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-md p-8 rounded-sm shadow-xl border border-stone-200 animate-fade-in">
              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-serif font-bold text-xl text-stone-800">New Custom Reward</h3>
+                <h3 className="font-serif font-bold text-xl text-stone-800">{editingId ? 'Edit Reward' : 'New Custom Reward'}</h3>
                 <button onClick={() => setIsCreating(false)} className="text-stone-400 hover:text-stone-600">
                    <X size={20} />
                 </button>
              </div>
              
-             <form onSubmit={handleCreateReward} className="space-y-4">
+             <form onSubmit={handleSaveReward} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Title</label>
                   <input 
                     required
-                    value={newTitle}
-                    onChange={e => setNewTitle(e.target.value)}
+                    value={formData.title}
+                    onChange={e => setFormData({...formData, title: e.target.value})}
                     placeholder="e.g. Buy a new book"
                     className="w-full p-2 bg-stone-50 border border-stone-200 focus:border-stone-800 outline-none font-serif"
+                    autoFocus
                   />
                 </div>
                 
@@ -145,8 +166,8 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                     type="number"
                     min="1"
                     required
-                    value={newCost}
-                    onChange={e => setNewCost(parseInt(e.target.value))}
+                    value={formData.cost}
+                    onChange={e => setFormData({...formData, cost: parseInt(e.target.value)})}
                     className="w-full p-2 bg-stone-50 border border-stone-200 focus:border-stone-800 outline-none font-serif"
                   />
                 </div>
@@ -154,8 +175,8 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                 <div>
                   <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Description (Optional)</label>
                   <input 
-                    value={newDesc}
-                    onChange={e => setNewDesc(e.target.value)}
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
                     placeholder="Short motivation..."
                     className="w-full p-2 bg-stone-50 border border-stone-200 focus:border-stone-800 outline-none font-serif text-sm"
                   />
@@ -168,8 +189,8 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                         <button
                           key={icon}
                           type="button"
-                          onClick={() => { setNewIcon(icon); playClick(); }}
-                          className={`p-2 rounded border transition-all ${newIcon === icon ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 hover:border-stone-400 text-stone-500'}`}
+                          onClick={() => { setFormData({...formData, icon}); playSoftClick(); }}
+                          className={`p-2 rounded border transition-all ${formData.icon === icon ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 hover:border-stone-400 text-stone-500'}`}
                         >
                           {renderIcon(icon, 18)}
                         </button>
@@ -178,6 +199,15 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                 </div>
 
                 <div className="pt-4 flex gap-2">
+                   {editingId && (
+                     <button
+                        type="button"
+                        onClick={() => handleDeleteReward(editingId)}
+                        className="px-4 py-3 bg-red-50 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-100 border border-red-100"
+                     >
+                        <Trash2 size={16} />
+                     </button>
+                   )}
                    <button 
                      type="button" 
                      onClick={() => setIsCreating(false)}
@@ -187,9 +217,10 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                    </button>
                    <button 
                      type="submit"
-                     className="flex-1 py-3 bg-stone-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-stone-700"
+                     className="flex-1 py-3 bg-stone-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-stone-700 flex items-center justify-center gap-2"
                    >
-                     Create Reward
+                     <Save size={14} />
+                     {editingId ? 'Save Changes' : 'Create Reward'}
                    </button>
                 </div>
              </form>
@@ -198,10 +229,9 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {allRewards.map(reward => {
+        {state.shopItems.map(reward => {
             const canAfford = state.blockBalance >= reward.cost;
             const isRedeemed = redeemedId === reward.id;
-            const isCustom = reward.id.startsWith('custom-');
             const progressPercent = Math.min(100, Math.round((state.blockBalance / reward.cost) * 100));
 
             return (
@@ -226,15 +256,15 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                             {renderIcon(reward.icon, 24)}
                         </div>
                         <div className="flex items-center gap-2">
-                           {isCustom && (
-                             <button 
-                               onClick={() => handleDeleteReward(reward.id)}
-                               className="text-stone-300 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                               title="Delete Reward"
-                             >
-                               <Trash2 size={14} />
-                             </button>
-                           )}
+                           {/* Edit Button visible on hover */}
+                           <button 
+                               onClick={() => handleEditClick(reward)}
+                               className="text-stone-300 hover:text-stone-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                               title="Edit Reward"
+                           >
+                               <Edit2 size={14} />
+                           </button>
+
                            <div className={`flex items-center gap-1 font-mono font-bold text-lg ${canAfford ? 'text-stone-800' : 'text-stone-400'}`}>
                                {reward.cost} <Box size={14} className={canAfford ? 'text-stone-400' : 'text-stone-300'} />
                            </div>

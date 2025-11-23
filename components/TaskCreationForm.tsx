@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap } from 'lucide-react';
 import { WeeklySchedule, Task, TaskQuadrant } from '../types';
@@ -7,9 +6,10 @@ import { useSound } from '../hooks/useSound';
 interface TaskCreationFormProps {
   onAddTask: (task: Partial<Task>, slot: {key: string, label: string, hour: number} | null) => void;
   schedule: WeeklySchedule;
+  existingTags: string[];
 }
 
-export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, schedule }) => {
+export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, schedule, existingTags }) => {
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -17,7 +17,15 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
   
   const [slot, setSlot] = useState<{key: string, label: string, hour: number} | null>(null);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
+  
+  // Tag Autocomplete State
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [activeTagIndex, setActiveTagIndex] = useState(0);
+
   const timeMenuRef = useRef<HTMLDivElement>(null);
+  const tagWrapperRef = useRef<HTMLDivElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
   const { playClick, playAdd } = useSound();
 
   const todayKey = useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'short' }), []);
@@ -26,6 +34,9 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
     const handleClickOutside = (event: MouseEvent) => {
       if (timeMenuRef.current && !timeMenuRef.current.contains(event.target as Node)) {
         setIsTimeDropdownOpen(false);
+      }
+      if (tagWrapperRef.current && !tagWrapperRef.current.contains(event.target as Node)) {
+        setShowTagSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -50,6 +61,55 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
       }
       return slots;
   }, [schedule.ideal, todayKey]);
+
+  const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setTags(val);
+    
+    const parts = val.split(',');
+    const currentInput = parts[parts.length - 1].trim().toLowerCase();
+    
+    if (currentInput) {
+       const alreadyUsed = parts.slice(0, -1).map(p => p.trim().toLowerCase());
+       const matches = existingTags.filter(t => 
+         t.toLowerCase().includes(currentInput) && 
+         !alreadyUsed.includes(t.toLowerCase()) &&
+         t.toLowerCase() !== currentInput
+       );
+       setTagSuggestions(matches);
+       setShowTagSuggestions(matches.length > 0);
+       setActiveTagIndex(0);
+    } else {
+       setShowTagSuggestions(false);
+    }
+  };
+
+  const selectTag = (tag: string) => {
+      const parts = tags.split(',');
+      parts.pop(); // Remove partial
+      parts.push(tag);
+      setTags(parts.join(', ').trim() + ', ');
+      setShowTagSuggestions(false);
+      playClick();
+      tagInputRef.current?.focus();
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+      if (showTagSuggestions && tagSuggestions.length > 0) {
+          if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setActiveTagIndex(prev => (prev + 1) % tagSuggestions.length);
+          } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setActiveTagIndex(prev => (prev - 1 + tagSuggestions.length) % tagSuggestions.length);
+          } else if (e.key === 'Enter' || e.key === 'Tab') {
+              e.preventDefault();
+              selectTag(tagSuggestions[activeTagIndex]);
+          } else if (e.key === 'Escape') {
+              setShowTagSuggestions(false);
+          }
+      }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,15 +166,31 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                  </div>
 
                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px] relative" ref={tagWrapperRef}>
                         <Tag size={14} className="text-stone-300 flex-shrink-0 ml-1" />
                         <input 
+                          ref={tagInputRef}
                           type="text"
                           value={tags}
-                          onChange={(e) => setTags(e.target.value)}
+                          onChange={handleTagChange}
+                          onKeyDown={handleTagKeyDown}
                           placeholder="Tags (comma separated)..."
                           className="w-full bg-transparent text-xs text-stone-500 focus:outline-none placeholder:text-stone-300 ml-1"
                         />
+                        {showTagSuggestions && (
+                            <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-stone-200 shadow-xl rounded-sm z-50 max-h-32 overflow-y-auto custom-scrollbar flex flex-col">
+                                {tagSuggestions.map((tag, index) => (
+                                    <button 
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => selectTag(tag)}
+                                        className={`text-left px-3 py-1.5 text-xs font-serif transition-colors ${index === activeTagIndex ? 'bg-amber-50 text-amber-800 font-bold' : 'text-stone-600 hover:bg-stone-50'}`}
+                                    >
+                                        #{tag}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     
                     <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100">

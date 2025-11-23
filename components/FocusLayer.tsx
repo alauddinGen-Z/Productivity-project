@@ -89,6 +89,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
     playClick();
     setIsActive(false);
     setTimeLeft(mode === 'focus' ? FOCUS_DURATION : BREAK_DURATION);
+    if (isDeepWorkMode) setIsDeepWorkMode(false); // If exiting full screen mode
   };
 
   const handleTaskCompletion = () => {
@@ -135,129 +136,9 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
       );
   }
 
-  if (!isDeepWorkMode) {
-    return (
-      <div className="max-w-xl mx-auto mt-8 animate-fade-in pb-12">
-        <div className="bg-white rounded-sm shadow-md border border-stone-200 overflow-hidden">
-          <div className="bg-[#292524] p-10 text-stone-100 text-center border-b border-stone-800 relative">
-            <h2 className="text-4xl font-serif font-bold mb-3">Deep Work</h2>
-            <p className="text-stone-400 font-serif italic">"The ability to concentrate without distraction..."</p>
-            
-            <div className="absolute top-4 right-4 flex items-center gap-2 bg-stone-800/80 px-3 py-1.5 rounded-full border border-stone-700">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-               <span className="text-[10px] font-mono font-bold text-stone-300">{currentTimeKey.replace('-', ' @ ')}:00</span>
-            </div>
-          </div>
-          
-          <div className="p-8 space-y-8">
-            
-            {currentBlock && (
-                <div className="bg-amber-50 border border-amber-200 p-5 rounded-sm flex items-start gap-4 shadow-sm">
-                    <div className="p-3 bg-white rounded-full border border-amber-100 text-amber-600">
-                        <Clock size={20} />
-                    </div>
-                    <div>
-                        <div className="text-[10px] uppercase tracking-widest text-amber-700 font-bold mb-1">Scheduled For Now</div>
-                        <div className="font-serif text-stone-800 font-bold text-xl">{currentBlock.label}</div>
-                        <div className="text-xs text-stone-500 mt-1 flex items-center gap-1">
-                             <div className={`w-2 h-2 rounded-full ${currentBlock.category === 'DEEP' ? 'bg-stone-800' : 'bg-emerald-500'}`}></div>
-                             {currentBlock.category} Category
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="bg-[#FAF9F6] p-6 border border-stone-200 rounded-sm">
-                <div className="flex items-center justify-between mb-4">
-                     <div className="flex items-center gap-2 text-stone-800 font-bold uppercase tracking-widest text-xs">
-                        <Target size={14} />
-                        <span>Select Your Target</span>
-                    </div>
-                    <button onClick={() => navigate('/tasks')} className="text-[10px] text-stone-400 hover:text-stone-600 underline">Manage Tasks</button>
-                </div>
-               
-                {tasks.filter(t => !t.completed).length === 0 ? (
-                    <div className="text-stone-400 text-sm italic py-4 text-center border border-dashed border-stone-300 rounded">
-                        No open tasks found.
-                    </div>
-                ) : (
-                    <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar">
-                        {tasks.filter(t => !t.completed).map(task => {
-                            const isScheduledNow = currentBlock?.taskId === task.id;
-                            const isSelected = selectedTaskId === task.id;
-                            
-                            return (
-                                <div 
-                                    key={task.id}
-                                    onClick={() => { setSelectedTaskId(task.id); playSoftClick(); }}
-                                    className={`p-3 rounded-sm border cursor-pointer transition-all flex items-center justify-between group ${
-                                        isSelected 
-                                        ? 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-[1.02]' 
-                                        : isScheduledNow 
-                                            ? 'bg-amber-100 border-amber-300 text-stone-800 shadow-sm' 
-                                            : 'bg-white border-stone-200 hover:border-stone-400 text-stone-600'
-                                    }`}
-                                >
-                                    <div className="flex flex-col overflow-hidden">
-                                        <div className="flex items-center gap-2">
-                                            {isScheduledNow && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isSelected ? 'bg-amber-500 text-white' : 'bg-amber-200 text-amber-800'}`}>Now</span>}
-                                            <span className="text-sm font-serif truncate">{task.title}</span>
-                                        </div>
-                                    </div>
-                                    {isSelected && <Check size={16} className="text-emerald-400" />}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-
-            <div className="space-y-3">
-                <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Environment Check</div>
-                {[
-                { key: 'phoneSilent', label: 'Phone silent & away', icon: Smartphone },
-                { key: 'notificationsOff', label: 'Notifications disabled', icon: BellOff },
-                { key: 'waterReady', label: 'Hydration ready', icon: Coffee },
-                ].map(({ key, label, icon: Icon }) => (
-                <div 
-                    key={key}
-                    className={`flex items-center p-3 border rounded-sm transition-all cursor-pointer group ${checklist[key as keyof typeof checklist] ? 'bg-stone-50 border-stone-400' : 'border-stone-100 hover:border-stone-200'}`}
-                    onClick={() => {
-                        setChecklist({...checklist, [key]: !checklist[key as keyof typeof checklist]});
-                        playSoftClick();
-                    }}
-                >
-                    <div className={`w-5 h-5 rounded-full border mr-4 flex items-center justify-center transition-colors ${checklist[key as keyof typeof checklist] ? 'bg-stone-800 border-stone-800 text-white' : 'border-stone-300 group-hover:border-stone-400'}`}>
-                    {checklist[key as keyof typeof checklist] && <Check size={10} />}
-                    </div>
-                    <div className="flex items-center gap-3 text-stone-700 font-serif text-sm">
-                    <Icon size={16} className="text-stone-400" />
-                    {label}
-                    </div>
-                </div>
-                ))}
-            </div>
-
-            <button
-              disabled={!allChecked || !selectedTaskId}
-              onClick={() => { setIsDeepWorkMode(true); playSuccess(); }}
-              className={`w-full py-5 text-xs font-bold uppercase tracking-[0.2em] transition-all border flex items-center justify-center gap-3 ${
-                allChecked && selectedTaskId
-                  ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700 shadow-md hover:shadow-lg transform active:scale-95' 
-                  : 'bg-stone-100 text-stone-400 border-stone-100 cursor-not-allowed'
-              }`}
-            >
-              <Zap size={16} className={allChecked && selectedTaskId ? "text-amber-400 fill-amber-400" : ""} />
-              Enter The Zone
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="animate-fade-in">
+  // Active Timer View (Full Screen Mode)
+  if (isDeepWorkMode) {
+      return (
         <FocusTimer 
             mode={mode}
             timeLeft={timeLeft}
@@ -266,23 +147,126 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             onReset={resetTimer}
             selectedTaskTitle={selectedTask?.title}
         />
-        
-        <div className="mt-12 flex flex-col items-center gap-4 pb-12">
-            <button 
-                onClick={() => { setIsDeepWorkMode(false); playClick(); }}
-                className="text-xs text-stone-300 hover:text-stone-500 uppercase tracking-widest"
-            >
-                Quit Session
-            </button>
-            
-            <button 
-                onClick={handleTaskCompletion}
-                className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 px-6 py-3 rounded-sm transition-all shadow-sm group"
-            >
-                <CheckCircle2 size={16} />
-                <span className="text-xs font-bold uppercase tracking-widest">Mark Task Complete</span>
-            </button>
+      );
+  }
+
+  // Setup View
+  return (
+    <div className="max-w-xl mx-auto mt-8 animate-fade-in pb-12">
+      <div className="bg-white rounded-sm shadow-md border border-stone-200 overflow-hidden">
+        <div className="bg-[#292524] p-10 text-stone-100 text-center border-b border-stone-800 relative">
+          <h2 className="text-4xl font-serif font-bold mb-3">Deep Work</h2>
+          <p className="text-stone-400 font-serif italic">"The ability to concentrate without distraction..."</p>
+          
+          <div className="absolute top-4 right-4 flex items-center gap-2 bg-stone-800/80 px-3 py-1.5 rounded-full border border-stone-700">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[10px] font-mono font-bold text-stone-300">{currentTimeKey.replace('-', ' @ ')}:00</span>
+          </div>
         </div>
+        
+        <div className="p-8 space-y-8">
+          
+          {currentBlock && (
+              <div className="bg-amber-50 border border-amber-200 p-5 rounded-sm flex items-start gap-4 shadow-sm">
+                  <div className="p-3 bg-white rounded-full border border-amber-100 text-amber-600">
+                      <Clock size={20} />
+                  </div>
+                  <div>
+                      <div className="text-[10px] uppercase tracking-widest text-amber-700 font-bold mb-1">Scheduled For Now</div>
+                      <div className="font-serif text-stone-800 font-bold text-xl">{currentBlock.label}</div>
+                      <div className="text-xs text-stone-500 mt-1 flex items-center gap-1">
+                            <div className={`w-2 h-2 rounded-full ${currentBlock.category === 'DEEP' ? 'bg-stone-800' : 'bg-emerald-500'}`}></div>
+                            {currentBlock.category} Category
+                      </div>
+                  </div>
+              </div>
+          )}
+
+          <div className="bg-[#FAF9F6] p-6 border border-stone-200 rounded-sm">
+              <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-stone-800 font-bold uppercase tracking-widest text-xs">
+                      <Target size={14} />
+                      <span>Select Your Target</span>
+                  </div>
+                  <button onClick={() => navigate('/tasks')} className="text-[10px] text-stone-400 hover:text-stone-600 underline">Manage Tasks</button>
+              </div>
+              
+              {tasks.filter(t => !t.completed).length === 0 ? (
+                  <div className="text-stone-400 text-sm italic py-4 text-center border border-dashed border-stone-300 rounded">
+                      No open tasks found.
+                  </div>
+              ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar">
+                      {tasks.filter(t => !t.completed).map(task => {
+                          const isScheduledNow = currentBlock?.taskId === task.id;
+                          const isSelected = selectedTaskId === task.id;
+                          
+                          return (
+                              <div 
+                                  key={task.id}
+                                  onClick={() => { setSelectedTaskId(task.id); playSoftClick(); }}
+                                  className={`p-3 rounded-sm border cursor-pointer transition-all flex items-center justify-between group ${
+                                      isSelected 
+                                      ? 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-[1.02]' 
+                                      : isScheduledNow 
+                                          ? 'bg-amber-100 border-amber-300 text-stone-800 shadow-sm' 
+                                          : 'bg-white border-stone-200 hover:border-stone-400 text-stone-600'
+                                  }`}
+                              >
+                                  <div className="flex flex-col overflow-hidden">
+                                      <div className="flex items-center gap-2">
+                                          {isScheduledNow && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isSelected ? 'bg-amber-500 text-white' : 'bg-amber-200 text-amber-800'}`}>Now</span>}
+                                          <span className="text-sm font-serif truncate">{task.title}</span>
+                                      </div>
+                                  </div>
+                                  {isSelected && <Check size={16} className="text-emerald-400" />}
+                              </div>
+                          );
+                      })}
+                  </div>
+              )}
+          </div>
+
+          <div className="space-y-3">
+              <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Environment Check</div>
+              {[
+              { key: 'phoneSilent', label: 'Phone silent & away', icon: Smartphone },
+              { key: 'notificationsOff', label: 'Notifications disabled', icon: BellOff },
+              { key: 'waterReady', label: 'Hydration ready', icon: Coffee },
+              ].map(({ key, label, icon: Icon }) => (
+              <div 
+                  key={key}
+                  className={`flex items-center p-3 border rounded-sm transition-all cursor-pointer group ${checklist[key as keyof typeof checklist] ? 'bg-stone-50 border-stone-400' : 'border-stone-100 hover:border-stone-200'}`}
+                  onClick={() => {
+                      setChecklist({...checklist, [key]: !checklist[key as keyof typeof checklist]});
+                      playSoftClick();
+                  }}
+              >
+                  <div className={`w-5 h-5 rounded-full border mr-4 flex items-center justify-center transition-colors ${checklist[key as keyof typeof checklist] ? 'bg-stone-800 border-stone-800 text-white' : 'border-stone-300 group-hover:border-stone-400'}`}>
+                  {checklist[key as keyof typeof checklist] && <Check size={10} />}
+                  </div>
+                  <div className="flex items-center gap-3 text-stone-700 font-serif text-sm">
+                  <Icon size={16} className="text-stone-400" />
+                  {label}
+                  </div>
+              </div>
+              ))}
+          </div>
+
+          <button
+            disabled={!allChecked || !selectedTaskId}
+            onClick={() => { setIsDeepWorkMode(true); playSuccess(); setIsActive(true); }}
+            className={`w-full py-5 text-xs font-bold uppercase tracking-[0.2em] transition-all border flex items-center justify-center gap-3 ${
+              allChecked && selectedTaskId
+                ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700 shadow-md hover:shadow-lg transform active:scale-95' 
+                : 'bg-stone-100 text-stone-400 border-stone-100 cursor-not-allowed'
+            }`}
+          >
+            <Zap size={16} className={allChecked && selectedTaskId ? "text-amber-400 fill-amber-400" : ""} />
+            Enter The Zone
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

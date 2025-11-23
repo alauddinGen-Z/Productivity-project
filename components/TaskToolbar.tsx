@@ -1,7 +1,7 @@
-
 import React, { useRef, useState, useEffect } from 'react';
-import { LayoutGrid, List, Filter, ArrowUpDown, CheckSquare, Square } from 'lucide-react';
+import { LayoutGrid, List, Filter, ArrowUpDown, Check, ChevronDown } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
+import { SortOption } from './TaskMatrix';
 
 interface TaskToolbarProps {
   activeView: 'matrix' | 'ivylee';
@@ -10,8 +10,8 @@ interface TaskToolbarProps {
   toggleTagFilter: (tag: string) => void;
   clearTags: () => void;
   uniqueTags: string[];
-  sortBy: 'NEWEST' | 'OLDEST' | 'AZ' | 'ZA' | 'PRIORITY';
-  setSortBy: (sort: 'NEWEST' | 'OLDEST' | 'AZ' | 'ZA' | 'PRIORITY') => void;
+  sortBy: SortOption;
+  setSortBy: (sort: SortOption) => void;
 }
 
 export const TaskToolbar: React.FC<TaskToolbarProps> = ({
@@ -25,7 +25,9 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
   setSortBy
 }) => {
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const tagMenuRef = useRef<HTMLDivElement>(null);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
   const { playClick } = useSound();
 
   useEffect(() => {
@@ -33,10 +35,23 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
       if (tagMenuRef.current && !tagMenuRef.current.contains(event.target as Node)) {
         setIsTagMenuOpen(false);
       }
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+        setIsSortMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: 'PRIORITY', label: 'Priority (Frogs First)' },
+    { value: 'NEWEST', label: 'Newest First' },
+    { value: 'OLDEST', label: 'Oldest First' },
+    { value: 'BLOCKS_DESC', label: 'Effort (High to Low)' },
+    { value: 'BLOCKS_ASC', label: 'Effort (Low to High)' },
+    { value: 'AZ', label: 'Title (A-Z)' },
+    { value: 'ZA', label: 'Title (Z-A)' },
+  ];
 
   return (
     <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200">
@@ -57,72 +72,78 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
         </button>
       </div>
 
-      {activeView === 'matrix' && (
-        <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
+          {/* Sort Menu */}
+          <div className="relative" ref={sortMenuRef}>
+             <button
+                onClick={() => { setIsSortMenuOpen(!isSortMenuOpen); playClick(); }}
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-stone-500 hover:text-stone-800 transition-colors"
+             >
+                <ArrowUpDown size={14} />
+                <span>Sort: {sortOptions.find(o => o.value === sortBy)?.label}</span>
+                <ChevronDown size={10} />
+             </button>
+
+             {isSortMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-stone-200 shadow-xl rounded-sm z-20 animate-fade-in">
+                   <div className="py-1">
+                      {sortOptions.map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => { setSortBy(option.value); setIsSortMenuOpen(false); playClick(); }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-between hover:bg-stone-50 ${sortBy === option.value ? 'text-amber-600' : 'text-stone-500'}`}
+                        >
+                           {option.label}
+                           {sortBy === option.value && <Check size={12} />}
+                        </button>
+                      ))}
+                   </div>
+                </div>
+             )}
+          </div>
+
+          <div className="h-4 w-px bg-stone-200"></div>
+
           {/* Tag Filter */}
           <div className="relative" ref={tagMenuRef}>
-            <button 
+            <button
               onClick={() => { setIsTagMenuOpen(!isTagMenuOpen); playClick(); }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${selectedTags.length > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-stone-50 border-stone-100 text-stone-500 hover:border-stone-300'}`}
+              className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors ${selectedTags.length > 0 ? 'text-amber-600' : 'text-stone-500 hover:text-stone-800'}`}
             >
-              <Filter size={12} />
-              <span className="text-xs font-serif font-medium">
-                  {selectedTags.length > 0 ? `Tags (${selectedTags.length})` : 'Filter Tags'}
-              </span>
+              <Filter size={14} />
+              <span>Filter {selectedTags.length > 0 ? `(${selectedTags.length})` : ''}</span>
             </button>
-
+            
             {isTagMenuOpen && (
-              <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-stone-200 shadow-xl rounded-sm z-50 animate-fade-in">
-                <div className="p-3 border-b border-stone-100 flex justify-between items-center">
-                  <span className="text-[10px] uppercase tracking-wider text-stone-400 font-bold">Available Tags</span>
-                  {selectedTags.length > 0 && (
-                    <button onClick={clearTags} className="text-[10px] text-red-400 hover:text-red-600">Clear</button>
-                  )}
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-stone-200 shadow-xl rounded-sm z-20 animate-fade-in p-2">
+                <div className="mb-2 pb-2 border-b border-stone-100 flex justify-between items-center px-2">
+                    <span className="text-[10px] text-stone-400 font-bold uppercase">Tags</span>
+                    {selectedTags.length > 0 && (
+                        <button onClick={() => { clearTags(); playClick(); }} className="text-[10px] text-red-400 hover:text-red-600">Clear</button>
+                    )}
                 </div>
-                <div className="max-h-60 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                  {uniqueTags.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-stone-400 italic">No tags created yet</div>
-                  ) : (
-                    uniqueTags.map(tag => {
-                      const isSelected = selectedTags.includes(tag);
-                      return (
-                        <div 
-                          key={tag} 
-                          onClick={() => toggleTagFilter(tag)}
-                          className={`flex items-center gap-3 px-2 py-2 cursor-pointer rounded-sm hover:bg-stone-50 transition-colors ${isSelected ? 'text-stone-800' : 'text-stone-500'}`}
-                        >
-                          <div className={`text-stone-400 ${isSelected ? 'text-stone-800' : ''}`}>
-                            {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
-                          </div>
-                          <span className="text-sm font-serif truncate">#{tag}</span>
-                        </div>
-                      )
-                    })
-                  )}
+                <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">
+                   {uniqueTags.length === 0 ? (
+                       <div className="px-2 py-2 text-xs text-stone-400 italic">No tags found</div>
+                   ) : (
+                       uniqueTags.map(tag => (
+                           <button
+                             key={tag}
+                             onClick={() => toggleTagFilter(tag)}
+                             className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-stone-50 rounded-sm text-left group"
+                           >
+                             <div className={`w-3 h-3 border rounded-sm flex items-center justify-center ${selectedTags.includes(tag) ? 'bg-stone-800 border-stone-800' : 'border-stone-300'}`}>
+                                {selectedTags.includes(tag) && <Check size={8} className="text-white" />}
+                             </div>
+                             <span className={`text-xs ${selectedTags.includes(tag) ? 'text-stone-800 font-bold' : 'text-stone-500'}`}>#{tag}</span>
+                           </button>
+                       ))
+                   )}
                 </div>
               </div>
             )}
           </div>
-
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2 group cursor-pointer bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100 hover:border-stone-300 transition-colors">
-            <ArrowUpDown size={12} className="text-stone-400 group-hover:text-stone-600" />
-            <div className="relative">
-              <select 
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-xs font-serif text-stone-600 focus:outline-none cursor-pointer hover:text-stone-800 appearance-none pr-2"
-              >
-                <option value="NEWEST">Newest</option>
-                <option value="OLDEST">Oldest</option>
-                <option value="PRIORITY">Priority</option>
-                <option value="AZ">Name (A-Z)</option>
-                <option value="ZA">Name (Z-A)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

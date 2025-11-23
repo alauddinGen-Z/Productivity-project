@@ -15,7 +15,8 @@ import {
   User,
   ShoppingBag,
   Box,
-  PieChart
+  PieChart,
+  Settings
 } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 
@@ -88,7 +89,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -115,6 +116,14 @@ export const Navigation: React.FC<NavigationProps> = ({
       </nav>
 
       <div className="p-6 border-t border-stone-700 bg-[#252221] space-y-2">
+        <Link 
+            to="/settings"
+            onClick={() => { setMobileOpen(false); playClick(); loaders.settings && loaders.settings(); }}
+            className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-stone-100 transition-colors text-sm group"
+        >
+            <Settings size={16} className="group-hover:rotate-90 transition-transform duration-500" />
+            <span>Settings</span>
+        </Link>
         <button 
           onClick={() => { playClick(); onExport(); }}
           className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-stone-100 transition-colors text-sm"

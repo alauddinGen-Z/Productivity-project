@@ -59,7 +59,8 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
             flashcards: flashcards.map((f: any) => ({ ...f, nextReview: f.next_review })),
             reflections: reflections.map((r: any) => ({ date: r.date, content: r.content })),
             weeklySchedule: profile?.weekly_schedule || { current: {}, ideal: {} },
-            customRewards: profile?.custom_rewards || []
+            shopItems: profile?.custom_rewards || [],
+            settings: profile?.settings || INITIAL_STATE.settings
           };
           
           setSyncedState(loadedState);
@@ -74,7 +75,7 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
     }
   }, [userSession]);
 
-  // Sync Data
+  // Sync Data - Optimized debounce
   useEffect(() => {
     if (userSession && !isLoginLoading) {
         // Prevent syncing empty initial state over data
@@ -92,7 +93,8 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
                     current_niyyah: state.currentNiyyah,
                     weekly_schedule: state.weeklySchedule,
                     block_balance: state.blockBalance,
-                    custom_rewards: state.customRewards
+                    custom_rewards: state.shopItems,
+                    settings: state.settings
                 });
 
                 await supabase.from('daily_quests').upsert({
@@ -105,41 +107,50 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
                     relationship_completed: state.dailyQuests.relationship.completed,
                 });
                 
-                // Tasks
-                const tasksToUpsert = state.tasks.map(t => ({
-                    id: t.id,
-                    email,
-                    title: t.title,
-                    completed: t.completed,
-                    quadrant: t.quadrant,
-                    is_frog: t.isFrog,
-                    purpose: t.purpose,
-                    tags: t.tags,
-                    blocks: t.blocks,
-                    created_at: t.createdAt,
-                    subtasks: t.subtasks
-                }));
-                if (tasksToUpsert.length > 0) await supabase.from('tasks').upsert(tasksToUpsert);
-                
-                // Determine deletions (simplified for this hook, normally done by diffing)
+                // Tasks - Wrapped in try/catch to ensure one bad task doesn't kill sync
+                if (state.tasks.length > 0) {
+                    try {
+                         const tasksToUpsert = state.tasks.map(t => ({
+                            id: t.id,
+                            email,
+                            title: t.title,
+                            completed: t.completed,
+                            quadrant: t.quadrant,
+                            is_frog: t.isFrog,
+                            purpose: t.purpose,
+                            tags: t.tags,
+                            blocks: t.blocks,
+                            created_at: t.createdAt,
+                            subtasks: t.subtasks
+                        }));
+                        await supabase.from('tasks').upsert(tasksToUpsert);
+                    } catch (err) { console.error("Task sync error:", err); }
+                }
+
+                // Flashcards
+                if (state.flashcards.length > 0) {
+                    try {
+                        const cardsToUpsert = state.flashcards.map(f => ({
+                            id: f.id,
+                            email,
+                            question: f.question,
+                            answer: f.answer,
+                            next_review: f.nextReview,
+                            interval: f.interval
+                        }));
+                        await supabase.from('flashcards').upsert(cardsToUpsert);
+                    } catch (err) { console.error("Flashcard sync error:", err); }
+                }
+
+                // Clean up deleted items (Tasks)
                 const { data: dbTasks } = await supabase.from('tasks').select('id').eq('email', email);
                 if (dbTasks) {
                     const currentIds = new Set(state.tasks.map(t => t.id));
                     const toDelete = dbTasks.filter((t: any) => !currentIds.has(t.id)).map((t: any) => t.id);
                     if (toDelete.length > 0) await supabase.from('tasks').delete().in('id', toDelete);
                 }
-
-                // Flashcards
-                const cardsToUpsert = state.flashcards.map(f => ({
-                    id: f.id,
-                    email,
-                    question: f.question,
-                    answer: f.answer,
-                    next_review: f.nextReview,
-                    interval: f.interval
-                }));
-                if (cardsToUpsert.length > 0) await supabase.from('flashcards').upsert(cardsToUpsert);
                 
+                // Clean up deleted items (Flashcards)
                 const { data: dbCards } = await supabase.from('flashcards').select('id').eq('email', email);
                 if (dbCards) {
                     const currentIds = new Set(state.flashcards.map(c => c.id));
@@ -159,10 +170,10 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
 
                 setSaveStatus('saved');
             } catch (e) {
-                console.error(e);
+                console.error("Sync error:", e);
                 setSaveStatus('error');
             }
-        }, 2000);
+        }, 1000); // 1 second debounce
         return () => clearTimeout(timer);
     }
   }, [state, userSession, isLoginLoading]);

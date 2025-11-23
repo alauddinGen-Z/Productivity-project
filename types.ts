@@ -57,6 +57,14 @@ export interface RewardItem {
   cost: number;
   icon: string;
   description?: string;
+  isDefault?: boolean;
+}
+
+export interface Settings {
+  language: 'en' | 'es' | 'fr' | 'de' | 'jp';
+  soundEnabled: boolean;
+  theme: 'light' | 'dark' | 'sepia';
+  reducedMotion: boolean;
 }
 
 export interface AppState {
@@ -70,7 +78,8 @@ export interface AppState {
   flashcards: Flashcard[];
   reflections: { date: string; content: string }[];
   weeklySchedule: WeeklySchedule;
-  customRewards: RewardItem[];
+  shopItems: RewardItem[]; // Replaces customRewards, contains ALL items
+  settings: Settings;
 }
 
 export const INITIAL_STATE: AppState = {
@@ -104,5 +113,11 @@ export const INITIAL_STATE: AppState = {
   flashcards: [],
   reflections: [],
   weeklySchedule: { current: {}, ideal: {} },
-  customRewards: [],
+  shopItems: [], // Will be populated with defaults on first load if empty
+  settings: {
+    language: 'en',
+    soundEnabled: true,
+    theme: 'light',
+    reducedMotion: false,
+  }
 };

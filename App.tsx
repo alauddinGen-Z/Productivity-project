@@ -3,7 +3,7 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Menu, CheckCircle2, Loader2 } from 'lucide-react';
 
-import { AppState, INITIAL_STATE, Task, WeeklySchedule } from './types';
+import { AppState, INITIAL_STATE, Task, WeeklySchedule, RewardItem } from './types';
 import { IntroAnimation } from './components/IntroAnimation';
 import { useDataSync } from './hooks/useDataSync';
 
@@ -20,6 +20,7 @@ const loadTime = () => import('./components/TimeStructurer');
 const loadAnalytics = () => import('./components/AnalyticsLayer');
 const loadReview = () => import('./components/WeeklyReview');
 const loadRewards = () => import('./components/RewardShop');
+const loadSettings = () => import('./components/SettingsLayer');
 
 const Dashboard = lazy(() => loadDashboard().then(module => ({ default: module.Dashboard })));
 const TaskMatrix = lazy(() => loadTasks().then(module => ({ default: module.TaskMatrix })));
@@ -29,6 +30,7 @@ const TimeStructurer = lazy(() => loadTime().then(module => ({ default: module.T
 const AnalyticsLayer = lazy(() => loadAnalytics().then(module => ({ default: module.AnalyticsLayer })));
 const WeeklyReview = lazy(() => loadReview().then(module => ({ default: module.WeeklyReview })));
 const RewardShop = lazy(() => loadRewards().then(module => ({ default: module.RewardShop })));
+const SettingsLayer = lazy(() => loadSettings().then(module => ({ default: module.SettingsLayer })));
 
 const loaders = {
     dashboard: loadDashboard,
@@ -38,7 +40,8 @@ const loaders = {
     rewards: loadRewards,
     psych: loadPsych,
     analytics: loadAnalytics,
-    review: loadReview
+    review: loadReview,
+    settings: loadSettings
 };
 
 interface UserSession {
@@ -50,13 +53,23 @@ const USER_KEY = 'intentional_current_user';
 const LAST_DATE_KEY = 'intentional_last_date';
 const INTRO_SEEN_KEY = 'intentional_intro_seen';
 
+const DEFAULT_REWARDS: RewardItem[] = [
+  { id: 'yt-1', title: 'Watch 1 YouTube Video', cost: 3, icon: 'Youtube', description: 'Guilt-free entertainment.' },
+  { id: 'gm-1', title: '15 Min Game Session', cost: 5, icon: 'Gamepad2', description: 'Quick level up.' },
+  { id: 'cf-1', title: 'Special Coffee/Tea Break', cost: 2, icon: 'Coffee', description: 'Brew something nice.' },
+  { id: 'ms-1', title: 'Listen to 3 Songs', cost: 1, icon: 'Music', description: 'Musical recharge.' },
+  { id: 'wk-1', title: 'Go for a Walk (No Phone)', cost: 4, icon: 'Sun', description: 'Touch grass.' },
+  { id: 'nap-1', title: '20 Min Power Nap', cost: 6, icon: 'Moon', description: 'Reset your brain.' },
+];
+
 const AnimatedRoutes: React.FC<{
   state: AppState;
   updateState: (updates: Partial<AppState>) => void;
   updateTasks: (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => void;
   updateSchedule: (schedule: WeeklySchedule) => void;
   toggleTask: (id: string) => void;
-}> = ({ state, updateState, updateTasks, updateSchedule, toggleTask }) => {
+  onLogout: () => void;
+}> = ({ state, updateState, updateTasks, updateSchedule, toggleTask, onLogout }) => {
   const location = useLocation();
 
   return (
@@ -70,6 +83,7 @@ const AnimatedRoutes: React.FC<{
         <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} />} />
         <Route path="/review" element={<WeeklyReview state={state} updateState={updateState} />} />
         <Route path="/rewards" element={<RewardShop state={state} updateState={updateState} />} />
+        <Route path="/settings" element={<SettingsLayer state={state} updateState={updateState} onLogout={onLogout} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
@@ -92,12 +106,11 @@ const App: React.FC = () => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [mobileOpen, setMobileOpen] = useState(false);
   
-  // Use the new custom hook for sync logic
   const { syncedState, isLoginLoading, saveStatus } = useDataSync(userSession, state);
   
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem(INTRO_SEEN_KEY));
 
-  // Update local state when sync completes loading
+  // Sync Logic
   useEffect(() => {
     if (userSession && !isLoginLoading && syncedState) {
         // Daily reset logic
@@ -116,7 +129,30 @@ const App: React.FC = () => {
              };
              localStorage.setItem(LAST_DATE_KEY, today);
         }
+
+        // --- Data Migration: Move defaults to shopItems if empty ---
+        // If shopItems is undefined (old user) or empty, we might want to populate defaults
+        if (!finalData.shopItems || finalData.shopItems.length === 0) {
+           // Check if there are old customRewards we need to migrate (from old types.ts)
+           const oldCustomRewards = (finalData as any).customRewards || [];
+           finalData = {
+               ...finalData,
+               shopItems: [...DEFAULT_REWARDS, ...oldCustomRewards]
+           };
+        }
+
+        // --- Data Migration: Settings ---
+        if (!finalData.settings) {
+            finalData = {
+                ...finalData,
+                settings: INITIAL_STATE.settings
+            };
+        }
+
         setState(finalData);
+        
+        // Sync local storage setting for useSound
+        localStorage.setItem('intentional_settings', JSON.stringify(finalData.settings));
     }
   }, [syncedState, isLoginLoading, userSession]);
 
@@ -184,7 +220,7 @@ const App: React.FC = () => {
            setShowIntro(false);
            sessionStorage.setItem(INTRO_SEEN_KEY, 'true');
        }} />}
-      <div className="flex min-h-screen bg-[#FAF9F6] text-stone-800 font-sans selection:bg-amber-100 selection:text-amber-900">
+      <div className={`flex min-h-screen font-sans selection:bg-amber-100 selection:text-amber-900 ${state.settings.theme === 'dark' ? 'bg-stone-900 text-stone-100' : 'bg-[#FAF9F6] text-stone-800'}`}>
         <Navigation 
           mobileOpen={mobileOpen} 
           setMobileOpen={setMobileOpen} 
@@ -230,7 +266,7 @@ const App: React.FC = () => {
                 </div>
              </div>
           ) : (
-            <main className="flex-1 overflow-auto p-4 lg:p-12 bg-[#FAF9F6]">
+            <main className={`flex-1 overflow-auto p-4 lg:p-12 ${state.settings.theme === 'dark' ? 'bg-[#1c1917]' : 'bg-[#FAF9F6]'}`}>
               <div className="max-w-6xl mx-auto">
                 <Suspense fallback={
                     <div className="h-64 flex items-center justify-center">
@@ -243,6 +279,7 @@ const App: React.FC = () => {
                       updateTasks={updateTasks} 
                       updateSchedule={updateSchedule} 
                       toggleTask={toggleTask} 
+                      onLogout={handleLogout}
                     />
                 </Suspense>
               </div>
