@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Task, TaskQuadrant, WeeklySchedule, TimeBlock } from '../types';
 import { Box, CornerDownRight } from 'lucide-react';
@@ -46,7 +45,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     setTasks(prev => [...prev, newTask]);
     
     if (slot) {
-        const newIdeal = { ...schedule.ideal };
+        const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
         if (newIdeal[slot.key]) {
             newIdeal[slot.key] = {
                 ...newIdeal[slot.key],
@@ -59,7 +58,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
 
   const deleteTask = useCallback((id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
-    const newIdeal = { ...schedule.ideal };
+    const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
     let changed = false;
     Object.keys(newIdeal).forEach(key => {
         if (newIdeal[key].taskId === id) {
@@ -124,7 +123,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       if (!targetTask) return;
 
       const key = `${day}-${hour}`;
-      const newIdeal = { ...schedule.ideal };
+      const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
       // Clear old slot for this task if exists
       Object.keys(newIdeal).forEach(k => {
           if (newIdeal[k].taskId === schedulingTaskId) {
