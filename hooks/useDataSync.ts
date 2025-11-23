@@ -44,7 +44,8 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
             tasks: tasks.map((t: any) => ({
               ...t,
               isFrog: t.is_frog,
-              createdAt: t.created_at,
+              // Convert DB ISO string to App Number
+              createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
               tags: Array.isArray(t.tags) ? t.tags : [],
               blocks: t.blocks || 1,
               subtasks: Array.isArray(t.subtasks) 
@@ -120,7 +121,8 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
                             purpose: t.purpose,
                             tags: t.tags,
                             blocks: t.blocks,
-                            created_at: t.createdAt,
+                            // Convert App Number to DB ISO String
+                            created_at: new Date(t.createdAt).toISOString(),
                             subtasks: t.subtasks
                         }));
                         await supabase.from('tasks').upsert(tasksToUpsert);

@@ -1,5 +1,5 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Play, Pause, Volume2, X, CloudRain, TreePine, Flame, Waves, Moon, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { useAmbientSound, SoundType } from '../hooks/useAmbientSound';
 
@@ -21,10 +21,11 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   selectedTaskTitle
 }) => {
   const { selectedSound, setSelectedSound, volume, setVolume } = useAmbientSound();
-  const [isFullScreen, setIsFullScreen] = React.useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Prevent scrolling when mounted
   useEffect(() => {
+    setMounted(true);
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
@@ -58,14 +59,16 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const soundOptions: { type: SoundType, icon: any, label: string }[] = [
     { type: 'none', icon: VolumeX, label: 'Off' },
     { type: 'rain', icon: CloudRain, label: 'Rain' },
-    { type: 'forest', icon: TreePine, label: 'Forest' }, // Fixed icon
+    { type: 'forest', icon: TreePine, label: 'Forest' },
     { type: 'fire', icon: Flame, label: 'Fire' },
     { type: 'ocean', icon: Waves, label: 'Ocean' },
     { type: 'night', icon: Moon, label: 'Night' },
   ];
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-[#FAF9F6] flex flex-col items-center justify-between p-6 animate-fade-in overflow-hidden">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-[#FAF9F6] flex flex-col items-center justify-between p-6 animate-fade-in overflow-hidden text-stone-800">
       
       {/* 1. Header Area */}
       <div className="w-full max-w-lg flex justify-between items-start shrink-0 h-16">
@@ -159,6 +162,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
              </div>
           </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
