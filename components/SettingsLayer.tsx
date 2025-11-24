@@ -3,6 +3,7 @@ import React from 'react';
 import { AppState, Settings } from '../types';
 import { Volume2, VolumeX, Moon, Sun, Monitor, Globe, Settings as SettingsIcon, LogOut, Database, RefreshCcw } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
+import { t } from '../utils/translations';
 
 interface SettingsLayerProps {
   state: AppState;
@@ -13,6 +14,7 @@ interface SettingsLayerProps {
 export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState, onLogout }) => {
   const { playClick, playSoftClick } = useSound();
   const { settings } = state;
+  const lang = settings.language;
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     playClick();
@@ -37,7 +39,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
       {/* Header */}
       <div className="bg-[#2c2a26] text-stone-200 p-8 rounded-sm shadow-md border-t-4 border-stone-500 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-serif mb-2 text-stone-50">System Settings</h1>
+          <h1 className="text-3xl font-serif mb-2 text-stone-50">{t('settings_title', lang)}</h1>
           <p className="text-stone-400 font-light italic">"Tailor the machine to the mind."</p>
         </div>
         <SettingsIcon size={48} className="text-stone-600 opacity-50" />
@@ -48,7 +50,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
         {/* Sound Settings */}
         <div className="p-8 border-b border-stone-100">
             <h3 className="font-serif font-bold text-lg text-stone-800 mb-6 flex items-center gap-2">
-                <Volume2 size={20} className="text-stone-400" /> Audio Experience
+                <Volume2 size={20} className="text-stone-400" /> {t('settings_audio', lang)}
             </h3>
             <div className="flex items-center justify-between">
                 <div>
@@ -67,7 +69,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
         {/* Theme Settings */}
         <div className="p-8 border-b border-stone-100">
              <h3 className="font-serif font-bold text-lg text-stone-800 mb-6 flex items-center gap-2">
-                <Sun size={20} className="text-stone-400" /> Interface Theme
+                <Sun size={20} className="text-stone-400" /> {t('settings_theme', lang)}
             </h3>
             <div className="grid grid-cols-3 gap-4">
                 {[
@@ -91,16 +93,16 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
         {/* Language */}
         <div className="p-8 border-b border-stone-100">
             <h3 className="font-serif font-bold text-lg text-stone-800 mb-6 flex items-center gap-2">
-                <Globe size={20} className="text-stone-400" /> Language Region
+                <Globe size={20} className="text-stone-400" /> {t('settings_lang', lang)}
             </h3>
             <div className="flex flex-wrap gap-2">
-                {['en', 'es', 'fr', 'de', 'jp'].map((lang) => (
+                {['en', 'es', 'fr', 'de', 'jp', 'ky'].map((l) => (
                     <button
-                        key={lang}
-                        onClick={() => updateSetting('language', lang as any)}
-                        className={`px-4 py-2 border rounded-sm text-sm font-bold uppercase tracking-widest transition-all ${settings.language === lang ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-white border-stone-200 text-stone-400 hover:border-stone-400'}`}
+                        key={l}
+                        onClick={() => updateSetting('language', l as any)}
+                        className={`px-4 py-2 border rounded-sm text-sm font-bold uppercase tracking-widest transition-all ${settings.language === l ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-white border-stone-200 text-stone-400 hover:border-stone-400'}`}
                     >
-                        {lang.toUpperCase()}
+                        {l.toUpperCase()}
                     </button>
                 ))}
             </div>
@@ -109,7 +111,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
         {/* Data & Account */}
         <div className="p-8 bg-stone-50">
              <h3 className="font-serif font-bold text-lg text-stone-800 mb-6 flex items-center gap-2">
-                <Database size={20} className="text-stone-400" /> Data & Account
+                <Database size={20} className="text-stone-400" /> {t('settings_data', lang)}
             </h3>
             
             <div className="space-y-4">
@@ -117,7 +119,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
                     onClick={handleResetData}
                     className="w-full flex items-center justify-between p-4 bg-white border border-stone-200 hover:border-red-300 hover:bg-red-50 text-stone-600 hover:text-red-600 transition-colors rounded-sm group"
                 >
-                    <span className="text-sm font-bold uppercase tracking-wide">Factory Reset Data</span>
+                    <span className="text-sm font-bold uppercase tracking-wide">{t('settings_reset', lang)}</span>
                     <RefreshCcw size={16} className="group-hover:rotate-180 transition-transform" />
                 </button>
 
@@ -125,7 +127,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
                     onClick={onLogout}
                     className="w-full flex items-center justify-between p-4 bg-white border border-stone-200 hover:border-stone-400 hover:bg-stone-100 text-stone-600 transition-colors rounded-sm"
                 >
-                    <span className="text-sm font-bold uppercase tracking-wide">Log Out</span>
+                    <span className="text-sm font-bold uppercase tracking-wide">{t('settings_logout', lang)}</span>
                     <LogOut size={16} />
                 </button>
             </div>

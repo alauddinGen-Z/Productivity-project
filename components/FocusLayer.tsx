@@ -5,6 +5,7 @@ import { Task, WeeklySchedule, TimeBlock } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { FocusTimer } from './FocusTimer';
 import { useSound } from '../hooks/useSound';
+import { t } from '../utils/translations';
 
 interface FocusLayerProps {
   tasks: Task[];
@@ -28,27 +29,61 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
   const [currentTimeKey, setCurrentTimeKey] = useState<string>('');
   const [currentBlock, setCurrentBlock] = useState<TimeBlock | null>(null);
 
+  // Reading language from localStorage fallback similar to other components
+  const settingsStr = localStorage.getItem('intentional_settings');
+  const settings = settingsStr ? JSON.parse(settingsStr) : { language: 'en' };
+  const lang = settings.language;
+
   useEffect(() => {
     const updateTimeContext = () => {
         const now = new Date();
         const day = now.toLocaleDateString('en-US', { weekday: 'short' });
         const hour = now.getHours();
-        const key = `${day}-${hour}`;
-        setCurrentTimeKey(key);
+        const minute = now.getMinutes();
         
-        if (schedule.ideal[key]) {
-            setCurrentBlock(schedule.ideal[key]);
-            const linkedTaskId = schedule.ideal[key].taskId;
+        const mainKey = `${day}-${hour}`;
+        const halfKey = `${day}-${hour}-30`;
+
+        const mainBlock = schedule.ideal[mainKey];
+        const halfBlock = schedule.ideal[halfKey];
+        
+        let foundBlock = null;
+
+        if (minute < 30) {
+           // First half of hour. 
+           // If main block exists, use it.
+           if (mainBlock) {
+             foundBlock = mainBlock;
+             setCurrentTimeKey(mainKey);
+           }
+        } else {
+           // Second half.
+           // If halfBlock exists, use it.
+           // Else if mainBlock exists and is 60m, use it.
+           if (halfBlock) {
+              foundBlock = halfBlock;
+              setCurrentTimeKey(halfKey);
+           } else if (mainBlock && (mainBlock.duration === 60 || mainBlock.duration === undefined)) {
+              foundBlock = mainBlock;
+              setCurrentTimeKey(mainKey);
+           }
+        }
+
+        if (foundBlock) {
+            setCurrentBlock(foundBlock);
+            const linkedTaskId = foundBlock.taskId;
             if (linkedTaskId && tasks.find(t => t.id === linkedTaskId && !t.completed)) {
                 if (!selectedTaskId) setSelectedTaskId(linkedTaskId);
             }
         } else {
             setCurrentBlock(null);
+            // Only update key if we didn't find a block, to show generic time
+            if (!foundBlock) setCurrentTimeKey(`${day}-${hour}:${minute < 10 ? '0'+minute : minute}`);
         }
     };
     
     updateTimeContext();
-    const interval = setInterval(updateTimeContext, 60000); 
+    const interval = setInterval(updateTimeContext, 30000); // Update every 30s
     return () => clearInterval(interval);
   }, [schedule, tasks, selectedTaskId]);
 
@@ -111,9 +146,9 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
              <div className="w-24 h-24 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6 text-stone-400">
                  <Moon size={40} />
              </div>
-             <h2 className="text-3xl font-serif font-bold text-stone-800 mb-3">Rest & Recharge</h2>
+             <h2 className="text-3xl font-serif font-bold text-stone-800 mb-3">{t('focus_rest', lang)}</h2>
              <p className="text-stone-500 font-serif italic mb-8 leading-relaxed max-w-md mx-auto">
-                 There is no active "Focus Block" scheduled for <strong>{currentTimeKey.split('-')[1]}:00</strong> in your Time Structure. 
+                 There is no active "Focus Block" scheduled for right now in your Time Structure. 
                  <br/><br/>
                  True productivity requires respecting the recovery phase.
              </p>
@@ -155,12 +190,14 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
     <div className="max-w-xl mx-auto mt-8 animate-fade-in pb-12">
       <div className="bg-white rounded-sm shadow-md border border-stone-200 overflow-hidden">
         <div className="bg-[#292524] p-10 text-stone-100 text-center border-b border-stone-800 relative">
-          <h2 className="text-4xl font-serif font-bold mb-3">Deep Work</h2>
-          <p className="text-stone-400 font-serif italic">"The ability to concentrate without distraction..."</p>
+          <h2 className="text-4xl font-serif font-bold mb-3">{t('focus_deep', lang)}</h2>
+          <p className="text-stone-400 font-serif italic">{t('focus_quote', lang)}</p>
           
           <div className="absolute top-4 right-4 flex items-center gap-2 bg-stone-800/80 px-3 py-1.5 rounded-full border border-stone-700">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[10px] font-mono font-bold text-stone-300">{currentTimeKey.replace('-', ' @ ')}:00</span>
+              <span className="text-[10px] font-mono font-bold text-stone-300">
+                  {currentTimeKey.includes(':') ? currentTimeKey.split('-')[1] : currentTimeKey.replace('-', ' @ ') + (currentTimeKey.includes('-30') ? ':30' : ':00')}
+              </span>
           </div>
         </div>
         
@@ -177,6 +214,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
                       <div className="text-xs text-stone-500 mt-1 flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${currentBlock.category === 'DEEP' ? 'bg-stone-800' : 'bg-emerald-500'}`}></div>
                             {currentBlock.category} Category
+                            {currentBlock.duration === 30 && <span className="ml-1 px-1 bg-amber-200 text-amber-800 rounded text-[8px]">30m</span>}
                       </div>
                   </div>
               </div>
@@ -186,7 +224,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
               <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2 text-stone-800 font-bold uppercase tracking-widest text-xs">
                       <Target size={14} />
-                      <span>Select Your Target</span>
+                      <span>{t('focus_select_target', lang)}</span>
                   </div>
                   <button onClick={() => navigate('/tasks')} className="text-[10px] text-stone-400 hover:text-stone-600 underline">Manage Tasks</button>
               </div>
@@ -228,7 +266,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
           </div>
 
           <div className="space-y-3">
-              <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Environment Check</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">{t('focus_checklist', lang)}</div>
               {[
               { key: 'phoneSilent', label: 'Phone silent & away', icon: Smartphone },
               { key: 'notificationsOff', label: 'Notifications disabled', icon: BellOff },
@@ -263,7 +301,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             }`}
           >
             <Zap size={16} className={allChecked && selectedTaskId ? "text-amber-400 fill-amber-400" : ""} />
-            Enter The Zone
+            {t('focus_enter_btn', lang)}
           </button>
         </div>
       </div>

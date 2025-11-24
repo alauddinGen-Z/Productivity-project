@@ -1,7 +1,10 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { LayoutGrid, List, Filter, ArrowUpDown, Check, ChevronDown } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { SortOption } from './TaskMatrix';
+import { t } from '../utils/translations';
+import { Settings } from '../types';
 
 interface TaskToolbarProps {
   activeView: 'matrix' | 'ivylee';
@@ -12,6 +15,7 @@ interface TaskToolbarProps {
   uniqueTags: string[];
   sortBy: SortOption;
   setSortBy: (sort: SortOption) => void;
+  language: Settings['language'];
 }
 
 export const TaskToolbar: React.FC<TaskToolbarProps> = ({
@@ -22,7 +26,8 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
   clearTags,
   uniqueTags,
   sortBy,
-  setSortBy
+  setSortBy,
+  language
 }) => {
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
@@ -44,13 +49,13 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
   }, []);
 
   const sortOptions: { value: SortOption; label: string }[] = [
-    { value: 'PRIORITY', label: 'Priority (Frogs First)' },
-    { value: 'NEWEST', label: 'Newest First' },
-    { value: 'OLDEST', label: 'Oldest First' },
-    { value: 'BLOCKS_DESC', label: 'Effort (High to Low)' },
-    { value: 'BLOCKS_ASC', label: 'Effort (Low to High)' },
-    { value: 'AZ', label: 'Title (A-Z)' },
-    { value: 'ZA', label: 'Title (Z-A)' },
+    { value: 'PRIORITY', label: t('sort_priority', language) },
+    { value: 'NEWEST', label: t('sort_newest', language) },
+    { value: 'OLDEST', label: t('sort_oldest', language) },
+    { value: 'BLOCKS_DESC', label: t('sort_effort_desc', language) },
+    { value: 'BLOCKS_ASC', label: t('sort_effort_asc', language) },
+    { value: 'AZ', label: t('sort_az', language) },
+    { value: 'ZA', label: t('sort_za', language) },
   ];
 
   return (
@@ -61,14 +66,14 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
           className={`flex items-center gap-2 text-sm font-serif transition-colors ${activeView === 'matrix' ? 'text-stone-800 font-bold' : 'text-stone-400 hover:text-stone-600'}`}
         >
           <LayoutGrid size={16} />
-          Eisenhower Matrix
+          {t('matrix_view_matrix', language)}
         </button>
         <button
           onClick={() => { setActiveView('ivylee'); playClick(); }}
           className={`flex items-center gap-2 text-sm font-serif transition-colors ${activeView === 'ivylee' ? 'text-stone-800 font-bold' : 'text-stone-400 hover:text-stone-600'}`}
         >
           <List size={16} />
-          Ivy Lee Method
+          {t('matrix_view_list', language)}
         </button>
       </div>
 
@@ -80,7 +85,7 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
                 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-stone-500 hover:text-stone-800 transition-colors"
              >
                 <ArrowUpDown size={14} />
-                <span>Sort: {sortOptions.find(o => o.value === sortBy)?.label}</span>
+                <span>{t('sort_label', language)}: {sortOptions.find(o => o.value === sortBy)?.label}</span>
                 <ChevronDown size={10} />
              </button>
 
@@ -111,15 +116,15 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
               className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors ${selectedTags.length > 0 ? 'text-amber-600' : 'text-stone-500 hover:text-stone-800'}`}
             >
               <Filter size={14} />
-              <span>Filter {selectedTags.length > 0 ? `(${selectedTags.length})` : ''}</span>
+              <span>{t('filter_label', language)} {selectedTags.length > 0 ? `(${selectedTags.length})` : ''}</span>
             </button>
             
             {isTagMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-stone-200 shadow-xl rounded-sm z-20 animate-fade-in p-2">
                 <div className="mb-2 pb-2 border-b border-stone-100 flex justify-between items-center px-2">
-                    <span className="text-[10px] text-stone-400 font-bold uppercase">Tags</span>
+                    <span className="text-[10px] text-stone-400 font-bold uppercase">{t('filter_tags', language)}</span>
                     {selectedTags.length > 0 && (
-                        <button onClick={() => { clearTags(); playClick(); }} className="text-[10px] text-red-400 hover:text-red-600">Clear</button>
+                        <button onClick={() => { clearTags(); playClick(); }} className="text-[10px] text-red-400 hover:text-red-600">{t('filter_clear', language)}</button>
                     )}
                 </div>
                 <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">

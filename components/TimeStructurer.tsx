@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Briefcase, Coffee, Heart, Users, Moon, Trash2, PieChart, ArrowDown, ArrowRight } from 'lucide-react';
-import { WeeklySchedule, TimeBlock, BlockCategory, Task, TaskQuadrant } from '../types';
+import { WeeklySchedule, TimeBlock, BlockCategory, Task, TaskQuadrant, Settings } from '../types';
 import { TimeBlockModal } from './TimeBlockModal';
 import { useSound } from '../hooks/useSound';
+import { t } from '../utils/translations';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -12,6 +13,7 @@ interface TimeStructurerProps {
   schedule: WeeklySchedule;
   updateSchedule: (schedule: WeeklySchedule) => void;
   updateTasks: (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => void;
+  language: Settings['language'];
 }
 
 const CATEGORIES: { id: BlockCategory; label: string; color: string; icon: React.ElementType }[] = [
@@ -22,7 +24,7 @@ const CATEGORIES: { id: BlockCategory; label: string; color: string; icon: React
   { id: 'REST', label: 'Rest & Recharge', color: 'bg-indigo-50 text-indigo-800 border-l-4 border-indigo-400', icon: Moon },
 ];
 
-export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, updateSchedule, updateTasks }) => {
+export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, updateSchedule, updateTasks, language }) => {
   const [view, setView] = useState<'ideal' | 'current'>('ideal');
   const [editingCell, setEditingCell] = useState<{ day: string, hour: number } | null>(null);
   const [tempBlock, setTempBlock] = useState<TimeBlock>({ category: 'DEEP', label: '' });
@@ -44,11 +46,6 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
 
   const { playClick, playSoftClick, playAdd, playDelete, playWhoosh } = useSound();
 
-  const getBlock = (day: string, hour: number) => {
-    const key = `${day}-${hour}`;
-    return schedule[view][key];
-  };
-
   const currentScheduleMap = schedule[view];
 
   // Calculate Statistics
@@ -57,8 +54,9 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     let totalBlocks = 0;
     Object.values(currentScheduleMap).forEach((block: TimeBlock) => {
       if (counts[block.category] !== undefined) {
-        counts[block.category]++;
-        totalBlocks++;
+        const weight = (block.duration === 30) ? 0.5 : 1;
+        counts[block.category] += weight;
+        totalBlocks += weight;
       }
     });
     return { counts, totalBlocks };
@@ -82,14 +80,17 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
       return;
     }
     playSoftClick();
-    const existing = getBlock(day, hour);
-    if (existing) {
-      setTempBlock(existing);
-      setDuration(1);
+    
+    // Simplification: We primarily edit the main block at the hour
+    const key = `${day}-${hour}`;
+    const block = schedule[view][key];
+
+    if (block) {
+      setTempBlock(block);
     } else {
       setTempBlock({ category: 'DEEP', label: '' });
-      setDuration(1);
     }
+    setDuration(1);
     setAddToMatrix(false); 
     setEditingCell({ day, hour });
     setApplyToAllDays(false);
@@ -100,7 +101,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     playAdd();
     
     const finalLabel = tempBlock.label.trim() || CATEGORIES.find(c => c.id === tempBlock.category)?.label || 'Block';
-    let blockToSave = { ...tempBlock, label: finalLabel };
+    let blockToSave = { ...tempBlock, label: finalLabel, duration: 60 }; 
 
     if (addToMatrix && view === 'ideal') {
         const taskId = `task-${Date.now()}`;
@@ -112,32 +113,32 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
             isFrog: false,
             createdAt: Date.now(),
             blocks: 1, 
-            tags: ['scheduled']
+            tags: ['scheduled'],
+            duration: 60
         };
         updateTasks(prev => [...prev, newTask]);
         blockToSave.taskId = taskId;
     }
 
     let newViewMap = { ...schedule[view] };
-    const hoursToFill = duration;
+    const hoursToFill = Math.ceil(duration); 
+
+    const apply = (d: string, h: number) => {
+        const key = `${d}-${h}`;
+        newViewMap[key] = blockToSave;
+        // Clean up hidden 30m slot if we are overwriting with a standard block via planner
+        delete newViewMap[`${d}-${h}-30`];
+    };
 
     if (applyToAllDays) {
         DAYS.forEach(d => {
             for (let i = 0; i < hoursToFill; i++) {
-                const h = editingCell.hour + i;
-                if (h <= 21) { 
-                    const key = `${d}-${h}`;
-                    newViewMap[key] = blockToSave;
-                }
+                if (editingCell.hour + i <= 21) apply(d, editingCell.hour + i);
             }
         });
     } else {
         for (let i = 0; i < hoursToFill; i++) {
-            const h = editingCell.hour + i;
-            if (h <= 21) {
-                const key = `${editingCell.day}-${h}`;
-                newViewMap[key] = blockToSave;
-            }
+             if (editingCell.hour + i <= 21) apply(editingCell.day, editingCell.hour + i);
         }
     }
 
@@ -154,6 +155,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     const key = `${d}-${h}`;
     const newViewMap = { ...schedule[view] };
     delete newViewMap[key];
+    delete newViewMap[`${d}-${h}-30`]; // Ensure we clean up any hidden split block too
     
     updateSchedule({ ...schedule, [view]: newViewMap });
     setEditingCell(null);
@@ -168,7 +170,8 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   };
 
   const duplicateBlock = (sourceDay: string, sourceHour: number, target: 'DOWN' | 'TOMORROW') => {
-    const block = getBlock(sourceDay, sourceHour);
+    const key = `${sourceDay}-${sourceHour}`;
+    const block = schedule[view][key];
     if (!block) return;
     playAdd();
 
@@ -178,24 +181,21 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
       targetHour = sourceHour + 1;
     } else if (target === 'TOMORROW') {
       const dayIdx = DAYS.indexOf(sourceDay);
-      if (dayIdx < DAYS.length - 1) {
-          targetDay = DAYS[dayIdx + 1];
-      } else {
-          targetDay = DAYS[0]; 
-      }
+      targetDay = dayIdx < DAYS.length - 1 ? DAYS[dayIdx + 1] : DAYS[0];
     }
     if (targetHour > 21) return;
+    
     const targetKey = `${targetDay}-${targetHour}`;
-    updateSchedule({
-        ...schedule,
-        [view]: { ...schedule[view], [targetKey]: block }
-    });
+    const newMap = { ...schedule[view], [targetKey]: block };
+    delete newMap[`${targetDay}-${targetHour}-30`]; // Cleanup target split
+
+    updateSchedule({ ...schedule, [view]: newMap });
     setContextMenu(null);
   };
 
   const handleDragStart = (e: React.DragEvent, day: string, hour: number) => {
-    const block = getBlock(day, hour);
-    if (!block) {
+    const key = `${day}-${hour}`;
+    if (!schedule[view][key]) {
       e.preventDefault();
       return;
     }
@@ -215,17 +215,22 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     e.preventDefault();
     setDragOverCell(null);
     if (!dragSource) return;
-    const block = getBlock(dragSource.day, dragSource.hour);
+    
+    const sourceKey = `${dragSource.day}-${dragSource.hour}`;
+    const block = schedule[view][sourceKey];
     if (!block) return;
 
     playWhoosh();
     const targetKey = `${day}-${hour}`;
-    const sourceKey = `${dragSource.day}-${dragSource.hour}`;
     const isCopy = e.ctrlKey || e.altKey || e.metaKey;
     const newMap = { ...schedule[view] };
+    
     newMap[targetKey] = block;
+    delete newMap[`${day}-${hour}-30`]; // Cleanup target split
+
     if (!isCopy && targetKey !== sourceKey) {
         delete newMap[sourceKey];
+        delete newMap[`${dragSource.day}-${dragSource.hour}-30`]; // Cleanup source split
     }
     updateSchedule({ ...schedule, [view]: newMap });
     setDragSource(null);
@@ -233,7 +238,8 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
 
   const handleContextMenu = (e: React.MouseEvent, day: string, hour: number) => {
     e.preventDefault();
-    if (!getBlock(day, hour)) return;
+    const key = `${day}-${hour}`;
+    if (!schedule[view][key]) return;
     playSoftClick();
     
     let x = e.clientX;
@@ -248,43 +254,58 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     setContextMenu({ x, y, day, hour });
   };
 
+  const renderSingleBlock = (block: TimeBlock) => {
+    const categoryInfo = CATEGORIES.find(c => c.id === block.category);
+    if (!categoryInfo) return null;
+    
+    return (
+        <div 
+            className={`h-full w-full rounded-sm p-1 text-[10px] shadow-sm cursor-grab active:cursor-grabbing flex flex-col justify-between overflow-hidden transition-all ${categoryInfo.color}`}
+        >
+            <div className="font-bold leading-tight truncate">{block.label}</div>
+            <div className="flex justify-between items-end">
+                <categoryInfo.icon size={10} />
+                {block.duration === 30 && <span className="text-[8px] opacity-70">30m</span>}
+            </div>
+        </div>
+    );
+  };
+
   const renderCell = (day: string, hour: number) => {
-    const block = getBlock(day, hour);
-    const categoryInfo = block ? CATEGORIES.find(c => c.id === block.category) : null;
+    const key = `${day}-${hour}`;
+    const block = schedule[view][key];
     const isDragging = dragSource?.day === day && dragSource?.hour === hour;
     const isOver = dragOverCell?.day === day && dragOverCell?.hour === hour;
 
     return (
       <div 
-        key={`${day}-${hour}`} 
+        key={key} 
         className={`h-16 border-r border-b border-stone-200 p-1 relative group transition-all duration-200 ${isOver ? 'bg-amber-50 ring-2 ring-inset ring-amber-300' : ''}`}
         onClick={() => handleCellClick(day, hour)}
         onContextMenu={(e) => handleContextMenu(e, day, hour)}
         onDragOver={(e) => handleDragOver(e, day, hour)}
         onDrop={(e) => handleDrop(e, day, hour)}
       >
-        {block && categoryInfo ? (
-          <div 
-            draggable
-            onDragStart={(e) => handleDragStart(e, day, hour)}
-            onDragEnd={() => { setDragSource(null); setDragOverCell(null); }}
-            className={`h-full w-full rounded-sm p-1.5 text-[10px] shadow-sm cursor-grab active:cursor-grabbing flex flex-col justify-between overflow-hidden transition-all ${categoryInfo.color} ${isDragging ? 'opacity-40 grayscale' : 'opacity-100'}`}
-          >
-             <div className="font-bold leading-tight truncate">{block.label}</div>
-             <div className="flex justify-between items-end opacity-0 group-hover:opacity-100 transition-opacity">
-                <categoryInfo.icon size={10} />
-                <button 
-                    onClick={(e) => { e.stopPropagation(); duplicateBlock(day, hour, 'DOWN'); }}
-                    className="p-0.5 hover:bg-black/10 rounded"
-                    title="Quick Duplicate Down"
-                >
-                    <ArrowDown size={10} />
-                </button>
-             </div>
-          </div>
-        ) : (
-          <div className="h-full w-full hover:bg-stone-50 transition-colors"></div>
-        )}
+        <div 
+             draggable={!!block}
+             onDragStart={(e) => handleDragStart(e, day, hour)}
+             onDragEnd={() => { setDragSource(null); setDragOverCell(null); }}
+             className={`h-full w-full ${isDragging ? 'opacity-40 grayscale' : 'opacity-100'}`}
+        >
+            {block ? renderSingleBlock(block) : <div className="h-full w-full hover:bg-stone-50 transition-colors"></div>}
+            
+            {block && (
+                 <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); duplicateBlock(day, hour, 'DOWN'); }}
+                        className="p-0.5 hover:bg-black/10 rounded bg-white/50"
+                        title={t('plan_dup_down', language)}
+                    >
+                        <ArrowDown size={10} />
+                    </button>
+                 </div>
+            )}
+        </div>
       </div>
     );
   };
@@ -293,16 +314,16 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     <div ref={containerRef} className="h-full flex flex-col space-y-6 animate-fade-in relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200">
         <div className="flex gap-4">
-          <button onClick={() => { setView('ideal'); playClick(); }} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'ideal' ? 'border-stone-800 text-stone-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Ideal Week (Vision)</button>
-          <button onClick={() => { setView('current'); playClick(); }} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'current' ? 'border-amber-600 text-amber-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>Reality (Log)</button>
+          <button onClick={() => { setView('ideal'); playClick(); }} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'ideal' ? 'border-stone-800 text-stone-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>{t('plan_ideal', language)}</button>
+          <button onClick={() => { setView('current'); playClick(); }} className={`px-4 py-2 text-sm font-serif font-bold transition-colors border-b-2 ${view === 'current' ? 'border-amber-600 text-amber-800' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>{t('plan_reality', language)}</button>
         </div>
         <div className="flex items-center gap-3">
             <button onClick={() => { setShowStats(!showStats); playClick(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-colors ${showStats ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'}`}>
                 <PieChart size={14} />
-                <span className="text-xs font-bold uppercase tracking-wider hidden md:inline">Analytics</span>
+                <span className="text-xs font-bold uppercase tracking-wider hidden md:inline">{t('plan_analytics', language)}</span>
             </button>
             <button onClick={clearSchedule} className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-stone-200 hover:border-red-200 hover:bg-red-50 text-stone-500 hover:text-red-600 transition-all text-xs font-bold uppercase tracking-wider">
-                <Trash2 size={14} /> <span>Reset</span>
+                <Trash2 size={14} /> <span>{t('plan_reset', language)}</span>
             </button>
         </div>
       </div>
@@ -326,7 +347,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
       <div className="flex-1 overflow-auto custom-scrollbar bg-white rounded-sm shadow-sm border border-stone-200">
          <div className="min-w-[800px]">
             <div className="grid grid-cols-[60px_repeat(7,1fr)] bg-stone-50 border-b border-stone-200 sticky top-0 z-10">
-                <div className="p-3 text-xs font-bold text-stone-400 uppercase tracking-wider text-center border-r border-stone-200">Time</div>
+                <div className="p-3 text-xs font-bold text-stone-400 uppercase tracking-wider text-center border-r border-stone-200">{t('plan_time', language)}</div>
                 {DAYS.map(day => (
                     <div key={day} className="p-3 text-xs font-bold text-stone-600 uppercase tracking-wider text-center border-r border-stone-200">{day}</div>
                 ))}
@@ -355,8 +376,9 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
             onClose={() => setEditingCell(null)}
             onSave={saveBlock}
             onDelete={deleteBlock}
-            hasExistingBlock={!!getBlock(editingCell.day, editingCell.hour)}
+            hasExistingBlock={!!schedule[view][`${editingCell.day}-${editingCell.hour}`]}
             categories={CATEGORIES}
+            language={language}
         />
       )}
 
@@ -370,14 +392,14 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
                 {contextMenu.day} @ {contextMenu.hour}:00
             </div>
             <button onClick={() => duplicateBlock(contextMenu.day, contextMenu.hour, 'DOWN')} className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-2">
-                <ArrowDown size={14} /> Duplicate Down
+                <ArrowDown size={14} /> {t('plan_dup_down', language)}
             </button>
             <button onClick={() => duplicateBlock(contextMenu.day, contextMenu.hour, 'TOMORROW')} className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-2">
-                <ArrowRight size={14} /> Duplicate to Tmrw
+                <ArrowRight size={14} /> {t('plan_dup_tmrw', language)}
             </button>
             <div className="h-px bg-stone-100 my-1"></div>
             <button onClick={() => deleteBlock(contextMenu.day, contextMenu.hour)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                <Trash2 size={14} /> Delete
+                <Trash2 size={14} /> {t('plan_delete', language)}
             </button>
         </div>
       )}

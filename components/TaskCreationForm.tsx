@@ -1,19 +1,23 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap } from 'lucide-react';
-import { WeeklySchedule, Task, TaskQuadrant } from '../types';
+import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap, Hourglass } from 'lucide-react';
+import { WeeklySchedule, Task, TaskQuadrant, Settings } from '../types';
 import { useSound } from '../hooks/useSound';
+import { t } from '../utils/translations';
 
 interface TaskCreationFormProps {
   onAddTask: (task: Partial<Task>, slot: {key: string, label: string, hour: number} | null) => void;
   schedule: WeeklySchedule;
   existingTags: string[];
+  language: Settings['language'];
 }
 
-export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, schedule, existingTags }) => {
+export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, schedule, existingTags, language }) => {
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [purpose, setPurpose] = useState('');
   const [blocks, setBlocks] = useState(1);
+  const [duration, setDuration] = useState<30 | 60>(60);
   
   const [slot, setSlot] = useState<{key: string, label: string, hour: number} | null>(null);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
@@ -43,29 +47,54 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Filter slots based on duration selected
   const availableSlots = useMemo(() => {
       const hours = Array.from({ length: 16 }, (_, i) => i + 6);
       const slots = [];
       for (const h of hours) {
-          const key = `${todayKey}-${h}`;
-          const block = schedule.ideal[key];
-          if (block) {
+          const mainKey = `${todayKey}-${h}`;
+          const halfKey = `${todayKey}-${h}-30`;
+          
+          const mainBlock = schedule.ideal[mainKey];
+          const halfBlock = schedule.ideal[halfKey];
+
+          if (duration === 60) {
+              const isBlocked = !!mainBlock || !!halfBlock;
               slots.push({
-                  key,
+                  key: mainKey,
                   hour: h,
-                  label: block.label,
-                  category: block.category,
-                  isBusy: !!block.taskId 
+                  displayTime: `${h}:00`,
+                  label: isBlocked ? (mainBlock?.label || halfBlock?.label || 'Busy') : 'Available',
+                  category: mainBlock?.category || halfBlock?.category,
+                  isBusy: isBlocked
+              });
+          } else {
+              const mainIsFull = mainBlock && (mainBlock.duration === 60 || mainBlock.duration === undefined);
+              slots.push({
+                  key: mainKey,
+                  hour: h,
+                  displayTime: `${h}:00`,
+                  label: mainBlock ? mainBlock.label : 'Available',
+                  category: mainBlock?.category,
+                  isBusy: !!mainBlock
+              });
+              const slot2Blocked = !!halfBlock || !!mainIsFull;
+              slots.push({
+                  key: halfKey,
+                  hour: h,
+                  displayTime: `${h}:30`,
+                  label: slot2Blocked ? (halfBlock?.label || mainBlock?.label || 'Busy') : 'Available',
+                  category: halfBlock?.category || (mainIsFull ? mainBlock?.category : undefined),
+                  isBusy: slot2Blocked
               });
           }
       }
       return slots;
-  }, [schedule.ideal, todayKey]);
+  }, [schedule.ideal, todayKey, duration]);
 
   const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTags(val);
-    
     const parts = val.split(',');
     const currentInput = parts[parts.length - 1].trim().toLowerCase();
     
@@ -86,7 +115,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
 
   const selectTag = (tag: string) => {
       const parts = tags.split(',');
-      parts.pop(); // Remove partial
+      parts.pop(); 
       parts.push(tag);
       setTags(parts.join(', ').trim() + ', ');
       setShowTagSuggestions(false);
@@ -121,6 +150,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
       tags: newTags,
       purpose,
       blocks,
+      duration,
       quadrant: TaskQuadrant.SCHEDULE,
       isFrog: false,
       createdAt: Date.now()
@@ -128,11 +158,11 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
 
     onAddTask(newTaskPart, slot);
 
-    // Reset Form
     setTitle('');
     setTags('');
     setPurpose('');
     setBlocks(1);
+    setDuration(60);
     setSlot(null);
   };
 
@@ -148,7 +178,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="What needs to be done?"
+                  placeholder={t('matrix_input_placeholder', language)}
                   className="flex-1 bg-transparent text-xl font-serif text-stone-800 placeholder:text-stone-300 focus:outline-none"
                  />
               </div>
@@ -160,7 +190,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                       type="text"
                       value={purpose}
                       onChange={(e) => setPurpose(e.target.value)}
-                      placeholder="Why is this important? (Connect to Niyyah/Goal)"
+                      placeholder={t('matrix_purpose_placeholder', language)}
                       className="flex-1 bg-amber-50/50 px-3 py-2 text-sm font-serif italic text-stone-600 focus:bg-amber-50 focus:outline-none rounded-sm placeholder:text-amber-700/30 transition-colors"
                     />
                  </div>
@@ -174,7 +204,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                           value={tags}
                           onChange={handleTagChange}
                           onKeyDown={handleTagKeyDown}
-                          placeholder="Tags (comma separated)..."
+                          placeholder={t('filter_tags', language) + "..."}
                           className="w-full bg-transparent text-xs text-stone-500 focus:outline-none placeholder:text-stone-300 ml-1"
                         />
                         {showTagSuggestions && (
@@ -193,9 +223,30 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                         )}
                     </div>
                     
+                    {/* Duration Selector */}
+                    <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100">
+                      <Hourglass size={12} className="text-stone-400" />
+                       <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => { setDuration(30); setSlot(null); playClick(); }}
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${duration === 30 ? 'bg-stone-800 text-white' : 'bg-white text-stone-400 border border-stone-200 hover:border-stone-400'}`}
+                          >
+                            30m
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setDuration(60); setSlot(null); playClick(); }}
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${duration === 60 ? 'bg-stone-800 text-white' : 'bg-white text-stone-400 border border-stone-200 hover:border-stone-400'}`}
+                          >
+                            1h
+                          </button>
+                       </div>
+                    </div>
+
+                    {/* Blocks Difficulty */}
                     <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100">
                       <BarChart2 size={12} className="text-stone-400" />
-                      <span className="text-xs text-stone-400 font-bold uppercase">Difficulty:</span>
                       <div className="flex gap-1">
                         {[1, 2, 3].map(level => (
                            <button
@@ -208,15 +259,15 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                            </button>
                         ))}
                       </div>
-                      <span className="text-[9px] text-stone-400 ml-1">Blocks</span>
                     </div>
 
+                    {/* Time Dropdown */}
                     <div className="relative" ref={timeMenuRef}>
                         {slot ? (
                             <div className="flex items-center gap-2 bg-amber-100 px-3 py-1.5 rounded-sm border border-amber-300">
                                 <Clock size={12} className="text-amber-700" />
                                 <span className="text-xs font-bold text-amber-800 font-mono">
-                                  {todayKey} @ {slot.hour}:00
+                                  {todayKey} @ {slot.key.includes('-30') ? `${slot.hour}:30` : `${slot.hour}:00`}
                                 </span>
                                 <button 
                                   type="button"
@@ -233,7 +284,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                               className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-200 hover:border-stone-400 transition-colors text-xs text-stone-500"
                             >
                                 <Calendar size={12} />
-                                <span>Pick Available Time</span>
+                                <span>{t('matrix_pick_time', language)}</span>
                                 <ChevronDown size={10} />
                             </button>
                         )}
@@ -241,11 +292,11 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                         {isTimeDropdownOpen && (
                             <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-stone-200 shadow-xl rounded-sm z-50 animate-fade-in max-h-60 overflow-y-auto custom-scrollbar">
                                 <div className="p-2 border-b border-stone-100 text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-stone-50 sticky top-0">
-                                    {todayKey}'s Time Blocks
+                                    {todayKey}'s {duration}m Slots
                                 </div>
                                 {availableSlots.length === 0 ? (
                                     <div className="p-4 text-center text-xs text-stone-400 italic">
-                                        No blocks in Schedule for today.
+                                        No slots available for {duration}m.
                                     </div>
                                 ) : (
                                     availableSlots.map(s => (
@@ -264,8 +315,8 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                                             }`}
                                         >
                                             <div className="flex flex-col">
-                                                <span className="text-xs font-mono font-bold text-stone-600">{s.hour}:00</span>
-                                                <span className="text-[10px] text-stone-400">{s.label}</span>
+                                                <span className="text-xs font-mono font-bold text-stone-600">{s.displayTime}</span>
+                                                <span className="text-[10px] text-stone-400 truncate max-w-[150px]">{s.label}</span>
                                             </div>
                                             {s.isBusy ? (
                                                 <span className="text-[9px] uppercase font-bold text-red-300">Busy</span>
@@ -287,7 +338,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                   disabled={!title.trim()}
                   className="bg-stone-800 text-white px-6 py-2 rounded-sm text-xs uppercase tracking-widest font-bold hover:bg-stone-700 disabled:opacity-50 transition-colors shadow-sm"
                  >
-                   Add Task
+                   {t('matrix_add_task_btn', language)}
                  </button>
               </div>
           </div>

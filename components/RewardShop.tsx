@@ -4,6 +4,7 @@ import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Pl
 import { AppState, RewardItem } from '../types';
 import { useSound } from '../hooks/useSound';
 import { generateId } from '../utils/helpers';
+import { t } from '../utils/translations';
 
 interface RewardShopProps {
   state: AppState;
@@ -17,6 +18,7 @@ const AVAILABLE_ICONS = [
 export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) => {
   const [redeemedId, setRedeemedId] = useState<string | null>(null);
   const { playSuccess, playClick, playDelete, playAdd, playSoftClick } = useSound();
+  const lang = state.settings.language;
   
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -112,12 +114,12 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
         
       <div className="bg-[#2c2a26] text-stone-200 p-8 rounded-sm shadow-md border-t-4 border-emerald-600 flex justify-between items-center relative overflow-hidden">
         <div className="relative z-10">
-          <h1 className="text-3xl font-serif mb-2 text-stone-50">Rest & Reward</h1>
-          <p className="text-stone-400 font-light italic">"Work hard, recover intentionally."</p>
+          <h1 className="text-3xl font-serif mb-2 text-stone-50">{t('reward_title', lang)}</h1>
+          <p className="text-stone-400 font-light italic">{t('reward_quote', lang)}</p>
         </div>
         <div className="relative z-10 flex items-center gap-4 bg-stone-800/50 p-4 rounded-sm border border-stone-700">
            <div className="text-right">
-              <div className="text-[10px] uppercase tracking-widest text-stone-400">Available Balance</div>
+              <div className="text-[10px] uppercase tracking-widest text-stone-400">{t('reward_balance', lang)}</div>
               <div className="text-3xl font-mono font-bold text-emerald-400">{state.blockBalance} Blocks</div>
            </div>
            <Box size={40} className="text-emerald-500" />
@@ -133,7 +135,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
           onClick={handleCreateClick}
           className="flex items-center gap-2 bg-stone-800 text-white px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-stone-700 transition-colors"
         >
-          <Plus size={16} /> Create Reward
+          <Plus size={16} /> {t('reward_create_btn', lang)}
         </button>
       </div>
 
@@ -141,7 +143,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-md p-8 rounded-sm shadow-xl border border-stone-200 animate-fade-in">
              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-serif font-bold text-xl text-stone-800">{editingId ? 'Edit Reward' : 'New Custom Reward'}</h3>
+                <h3 className="font-serif font-bold text-xl text-stone-800">{editingId ? t('reward_edit_title', lang) : t('reward_new_title', lang)}</h3>
                 <button onClick={() => setIsCreating(false)} className="text-stone-400 hover:text-stone-600">
                    <X size={20} />
                 </button>
@@ -149,7 +151,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
              
              <form onSubmit={handleSaveReward} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Title</label>
+                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{t('reward_form_title', lang)}</label>
                   <input 
                     required
                     value={formData.title}
@@ -161,7 +163,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                 </div>
                 
                 <div>
-                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Cost (Blocks)</label>
+                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{t('reward_form_cost', lang)}</label>
                   <input 
                     type="number"
                     min="1"
@@ -173,17 +175,17 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Description (Optional)</label>
+                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{t('reward_form_desc', lang)}</label>
                   <input 
                     value={formData.description}
                     onChange={e => setFormData({...formData, description: e.target.value})}
-                    placeholder="Short motivation..."
+                    placeholder="..."
                     className="w-full p-2 bg-stone-50 border border-stone-200 focus:border-stone-800 outline-none font-serif text-sm"
                   />
                 </div>
 
                 <div>
-                   <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Icon</label>
+                   <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('reward_form_icon', lang)}</label>
                    <div className="flex gap-2 flex-wrap">
                       {AVAILABLE_ICONS.map(icon => (
                         <button
@@ -213,14 +215,14 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                      onClick={() => setIsCreating(false)}
                      className="flex-1 py-3 text-stone-500 font-bold text-xs uppercase tracking-widest hover:bg-stone-100"
                    >
-                     Cancel
+                     {t('reward_cancel', lang)}
                    </button>
                    <button 
                      type="submit"
                      className="flex-1 py-3 bg-stone-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-stone-700 flex items-center justify-center gap-2"
                    >
                      <Save size={14} />
-                     {editingId ? 'Save Changes' : 'Create Reward'}
+                     {editingId ? t('reward_save', lang) : t('reward_create', lang)}
                    </button>
                 </div>
              </form>
@@ -246,8 +248,8 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                             <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-3 animate-fade-slide">
                                 <CheckCircle size={24} className="text-emerald-600" />
                             </div>
-                            <h3 className="text-emerald-800 font-serif font-bold text-lg mb-1">Reward Claimed!</h3>
-                            <p className="text-emerald-600 text-xs font-serif italic">Enjoy your hard-earned break.</p>
+                            <h3 className="text-emerald-800 font-serif font-bold text-lg mb-1">{t('reward_claimed', lang)}</h3>
+                            <p className="text-emerald-600 text-xs font-serif italic">{t('reward_claimed_sub', lang)}</p>
                         </div>
                     )}
 
@@ -304,9 +306,9 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                             }`}
                         >
                             {canAfford ? (
-                                'Redeem Reward'
+                                t('reward_redeem', lang)
                             ) : (
-                                <><Lock size={12} /> Need {reward.cost - state.blockBalance} more</>
+                                <><Lock size={12} /> {t('reward_need_more', lang)} {reward.cost - state.blockBalance}</>
                             )}
                         </button>
                     </div>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppState, TaskQuadrant } from '../types';
 import { PieChart, Zap, Target, Layers, Trophy, Activity } from 'lucide-react';
 import { LineChart, DonutChart } from './Charts';
+import { t } from '../utils/translations';
 
 interface AnalyticsLayerProps {
   state: AppState;
@@ -13,6 +14,7 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
   const navigate = useNavigate();
+  const lang = state.settings.language;
 
   // 1. Task Statistics
   const taskStats = useMemo(() => {
@@ -66,8 +68,8 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
       {/* Header */}
       <div className="bg-[#2c2a26] text-stone-200 p-8 rounded-sm shadow-md border-t-4 border-stone-500 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-serif mb-2 text-stone-50">Progress & Insights</h1>
-          <p className="text-stone-400 font-light italic">"What gets measured gets managed."</p>
+          <h1 className="text-3xl font-serif mb-2 text-stone-50">{t('stats_title', lang)}</h1>
+          <p className="text-stone-400 font-light italic">{t('stats_quote', lang)}</p>
         </div>
         <PieChart size={48} className="text-stone-600 opacity-50" />
       </div>
@@ -84,9 +86,9 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
              <Activity size={32} />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">Schedule Adherence</h3>
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">{t('stats_adherence', lang)}</h3>
             <p className="text-2xl font-serif text-stone-800 mt-1">{scheduleData.adherenceRate}%</p>
-            <p className="text-xs text-stone-400 mt-1">Reality vs Plan</p>
+            <p className="text-xs text-stone-400 mt-1">{t('stats_reality_plan', lang)}</p>
           </div>
         </div>
 
@@ -103,7 +105,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
              <span className="absolute text-sm font-bold text-stone-800">{taskStats.rate}%</span>
           </div>
           <div>
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest group-hover:text-stone-600 transition-colors">Tasks Done</h3>
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest group-hover:text-stone-600 transition-colors">{t('stats_tasks_done', lang)}</h3>
             <p className="text-2xl font-serif text-stone-800 mt-1">{taskStats.completed} <span className="text-base text-stone-400">/ {taskStats.total}</span></p>
           </div>
         </div>
@@ -117,13 +119,13 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
              <Trophy size={32} />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">Daily Quests</h3>
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">{t('stats_quests', lang)}</h3>
             <div className="flex gap-1 mt-2">
                {[1,2,3].map(i => (
                  <div key={i} className={`h-2 w-8 rounded-sm transition-colors ${i <= questCompletion.done ? 'bg-emerald-500' : 'bg-stone-200'}`}></div>
                ))}
             </div>
-            <p className="text-xs text-stone-400 mt-2">{questCompletion.done} of 3 completed</p>
+            <p className="text-xs text-stone-400 mt-2">{questCompletion.done} / 3</p>
           </div>
         </div>
       </div>
@@ -135,10 +137,10 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
         <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2">
             <div className="flex justify-between items-start mb-6">
                 <div>
-                <h3 className="font-serif font-bold text-xl text-stone-800">Weekly Execution</h3>
+                <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_weekly_exec', lang)}</h3>
                 <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">
-                    <span className="inline-block w-2 h-2 rounded-full bg-stone-300 mr-1"></span> Planned
-                    <span className="inline-block w-2 h-2 rounded-full bg-amber-600 ml-3 mr-1"></span> Reality (Completed Blocks)
+                    <span className="inline-block w-2 h-2 rounded-full bg-stone-300 mr-1"></span> {t('plan_ideal', lang)}
+                    <span className="inline-block w-2 h-2 rounded-full bg-amber-600 ml-3 mr-1"></span> {t('plan_reality', lang)}
                 </p>
                 </div>
                 <Zap className="text-stone-200" size={24} />
@@ -152,7 +154,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
         <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 relative overflow-hidden">
           <div className="flex justify-between items-start mb-8">
              <div>
-                <h3 className="font-serif font-bold text-xl text-stone-800">Energy Allocation</h3>
+                <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_energy', lang)}</h3>
                 <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">Pending Tasks by Quadrant</p>
              </div>
              <Target className="text-stone-200" size={24} />
@@ -174,10 +176,10 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
 
             <div className="flex-1 w-full space-y-4">
                {[
-                 { label: 'Do (Urgent)', count: taskStats.byQuadrant[TaskQuadrant.DO], color: 'bg-amber-700' },
-                 { label: 'Schedule (Deep)', count: taskStats.byQuadrant[TaskQuadrant.SCHEDULE], color: 'bg-stone-700' },
-                 { label: 'Delegate', count: taskStats.byQuadrant[TaskQuadrant.DELEGATE], color: 'bg-stone-300' },
-                 { label: 'Eliminate', count: taskStats.byQuadrant[TaskQuadrant.DELETE], color: 'bg-stone-100' },
+                 { label: t('matrix_do', lang), count: taskStats.byQuadrant[TaskQuadrant.DO], color: 'bg-amber-700' },
+                 { label: t('matrix_schedule', lang), count: taskStats.byQuadrant[TaskQuadrant.SCHEDULE], color: 'bg-stone-700' },
+                 { label: t('matrix_delegate', lang), count: taskStats.byQuadrant[TaskQuadrant.DELEGATE], color: 'bg-stone-300' },
+                 { label: t('matrix_delete', lang), count: taskStats.byQuadrant[TaskQuadrant.DELETE], color: 'bg-stone-100' },
                ].map((item) => (
                  <div key={item.label} className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
@@ -195,7 +197,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
         <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200">
            <div className="flex justify-between items-start mb-8">
              <div>
-                <h3 className="font-serif font-bold text-xl text-stone-800">System Health</h3>
+                <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_system_health', lang)}</h3>
                 <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">Consistency Metrics</p>
              </div>
              <Layers className="text-stone-200" size={24} />
@@ -204,8 +206,8 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
           <div className="space-y-8">
              <div>
                 <div className="flex justify-between text-sm mb-2 font-serif">
-                   <span className="text-stone-600">Knowledge Bank (Flashcards)</span>
-                   <span className="text-stone-800 font-bold">{state.flashcards.length} Cards</span>
+                   <span className="text-stone-600">{t('stats_knowledge', lang)}</span>
+                   <span className="text-stone-800 font-bold">{state.flashcards.length} {t('stats_cards', lang)}</span>
                 </div>
                 <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
                     <div className="h-full bg-stone-400" style={{ width: `${Math.min(100, state.flashcards.length * 5)}%` }}></div>

@@ -76,11 +76,11 @@ const AnimatedRoutes: React.FC<{
     <div key={location.pathname} className="animate-fade-slide">
       <Routes location={location}>
         <Route path="/" element={<Dashboard state={state} updateState={updateState} />} />
-        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} toggleTask={toggleTask} />} />
-        <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} />} />
-        <Route path="/psych" element={<PsychologyLayer flashcards={state.flashcards} updateState={updateState} />} />
+        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} toggleTask={toggleTask} language={state.settings.language} />} />
+        <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} language={state.settings.language} />} />
+        <Route path="/psych" element={<PsychologyLayer state={state} updateState={updateState} language={state.settings.language} />} />
         <Route path="/graphics" element={<AnalyticsLayer state={state} />} />
-        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} />} />
+        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} language={state.settings.language} />} />
         <Route path="/review" element={<WeeklyReview state={state} updateState={updateState} />} />
         <Route path="/rewards" element={<RewardShop state={state} updateState={updateState} />} />
         <Route path="/settings" element={<SettingsLayer state={state} updateState={updateState} onLogout={onLogout} />} />
@@ -131,9 +131,7 @@ const App: React.FC = () => {
         }
 
         // --- Data Migration: Move defaults to shopItems if empty ---
-        // If shopItems is undefined (old user) or empty, we might want to populate defaults
         if (!finalData.shopItems || finalData.shopItems.length === 0) {
-           // Check if there are old customRewards we need to migrate (from old types.ts)
            const oldCustomRewards = (finalData as any).customRewards || [];
            finalData = {
                ...finalData,

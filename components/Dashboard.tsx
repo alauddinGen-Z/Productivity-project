@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Target, Calendar, Heart, Quote, PenLine, CheckSquare } from 'lucide-react';
 import { AppState, DailyQuests } from '../types';
 import { useSound } from '../hooks/useSound';
+import { t } from '../utils/translations';
 
 interface DashboardProps {
   state: AppState;
@@ -13,6 +14,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
   const [isEditingVision, setIsEditingVision] = useState(false);
   const [niyyahInput, setNiyyahInput] = useState(state.currentNiyyah);
   const { playSuccess, playClick, playAdd, playSoftClick } = useSound();
+  const lang = state.settings.language;
 
   const toggleQuest = (category: keyof DailyQuests) => {
     const isCompleted = !state.dailyQuests[category].completed;
@@ -50,9 +52,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
         <div className="absolute top-0 right-0 p-6 opacity-10 text-stone-400">
           <Quote size={140} />
         </div>
-        <h1 className="text-3xl font-serif mb-3 text-amber-50">Intentionality First</h1>
+        <h1 className="text-3xl font-serif mb-3 text-amber-50">{t('dash_intent_title', lang)}</h1>
         <p className="text-stone-400 mb-8 max-w-xl font-light leading-relaxed">
-          Before you begin, anchor your heart. What is the ultimate meaning (Niyyah) behind your actions today?
+          {t('dash_intent_desc', lang)}
         </p>
         <div className="flex gap-0 max-w-2xl border-b border-stone-600 focus-within:border-amber-500 transition-colors">
           <input
@@ -60,14 +62,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
             value={niyyahInput}
             onChange={(e) => setNiyyahInput(e.target.value)}
             onFocus={() => playSoftClick()}
-            placeholder="e.g., To seek beneficial knowledge..."
+            placeholder={t('dash_intent_placeholder', lang)}
             className="flex-1 bg-transparent px-4 py-3 text-stone-100 placeholder:text-stone-600 focus:outline-none font-serif italic text-lg"
           />
           <button 
             onClick={saveNiyyah}
             className="text-stone-400 hover:text-amber-400 px-6 py-3 font-medium transition-colors uppercase text-xs tracking-widest"
           >
-            Set Intention
+            {t('dash_set_btn', lang)}
           </button>
         </div>
         {state.currentNiyyah && (
@@ -85,8 +87,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
            <div className="absolute top-0 left-0 w-full h-1 bg-stone-100"></div>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-serif font-bold text-stone-800 mb-1">12-Month Vision</h2>
-              <p className="text-xs uppercase tracking-wider text-stone-400">Future Celebration</p>
+              <h2 className="text-xl font-serif font-bold text-stone-800 mb-1">{t('dash_vision_title', lang)}</h2>
+              <p className="text-xs uppercase tracking-wider text-stone-400">{t('dash_vision_sub', lang)}</p>
             </div>
             <button 
               onClick={() => { setIsEditingVision(!isEditingVision); playClick(); }}
@@ -125,9 +127,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
            <div className="absolute top-4 right-4 text-stone-300">
             <Target size={20} />
            </div>
-          <h2 className="text-xl font-serif font-bold text-stone-800 mb-1">The "Thing"</h2>
+          <h2 className="text-xl font-serif font-bold text-stone-800 mb-1">{t('dash_thing_title', lang)}</h2>
           <p className="text-xs uppercase tracking-wider text-stone-400 mb-6">
-            Intrinsic Fulfillment
+            {t('dash_thing_sub', lang)}
           </p>
           <textarea
             value={state.theThing}
@@ -144,8 +146,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
           <div className="flex items-center gap-3 mb-8">
             <Calendar className="text-emerald-800" size={20} />
             <div>
-               <h2 className="text-xl font-serif font-bold text-stone-800">Daily Side Quests</h2>
-               <p className="text-xs uppercase tracking-wider text-stone-400">Happiness of Pursuit</p>
+               <h2 className="text-xl font-serif font-bold text-stone-800">{t('dash_quests_title', lang)}</h2>
+               <p className="text-xs uppercase tracking-wider text-stone-400">{t('dash_quests_sub', lang)}</p>
             </div>
           </div>
           

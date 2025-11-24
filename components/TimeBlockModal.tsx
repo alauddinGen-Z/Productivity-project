@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { X, Check, Trash2, LayoutGrid } from 'lucide-react';
-import { TimeBlock, BlockCategory } from '../types';
+import { TimeBlock, BlockCategory, Settings } from '../types';
+import { t } from '../utils/translations';
 
 interface TimeBlockModalProps {
   editingCell: { day: string; hour: number };
@@ -19,6 +20,7 @@ interface TimeBlockModalProps {
   onDelete: () => void;
   hasExistingBlock: boolean;
   categories: { id: BlockCategory; label: string; icon: React.ElementType }[];
+  language: Settings['language'];
 }
 
 export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
@@ -36,7 +38,8 @@ export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
   onSave,
   onDelete,
   hasExistingBlock,
-  categories
+  categories,
+  language
 }) => {
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-stone-900/10 backdrop-blur-[1px]">
@@ -50,7 +53,7 @@ export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
 
          <div className="space-y-4">
            <div>
-              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Type</label>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('plan_type', language)}</label>
               <div className="grid grid-cols-1 gap-2 mt-2">
                 {categories.map(cat => (
                     <button
@@ -66,12 +69,12 @@ export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
            </div>
 
            <div>
-              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Label</label>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('plan_label', language)}</label>
               <input 
                 type="text"
                 value={tempBlock.label}
                 onChange={(e) => setTempBlock({ ...tempBlock, label: e.target.value })}
-                placeholder="Specific task..."
+                placeholder="..."
                 className="w-full mt-1 p-2 bg-stone-50 border border-stone-200 focus:border-stone-800 outline-none text-sm font-serif"
                 autoFocus
               />
@@ -88,14 +91,14 @@ export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
                 </div>
                 <span className="text-xs font-serif text-stone-600 flex items-center gap-2">
                     <LayoutGrid size={12} className="text-stone-400" />
-                    Add to Task Matrix
+                    {t('plan_matrix_add', language)}
                 </span>
              </div>
            )}
 
            <div className="flex gap-4">
               <div className="flex-1">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Duration (Hrs)</label>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('plan_duration', language)}</label>
                   <input 
                     type="number"
                     min="1"
@@ -113,7 +116,7 @@ export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
                      <div className={`w-4 h-4 border flex items-center justify-center ${applyToAllDays ? 'bg-stone-800 border-stone-800' : 'border-stone-300'}`}>
                         {applyToAllDays && <Check size={10} className="text-white" />}
                      </div>
-                     <span className="text-xs text-stone-600">All Days</span>
+                     <span className="text-xs text-stone-600">{t('plan_all_days', language)}</span>
                   </div>
               </div>
            </div>
@@ -125,7 +128,7 @@ export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
                 </button>
              )}
              <button onClick={onSave} className="flex-1 bg-stone-800 text-white py-2 font-bold text-xs uppercase tracking-widest hover:bg-stone-700">
-                Save Block
+                {t('plan_save', language)}
              </button>
            </div>
          </div>

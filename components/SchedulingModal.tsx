@@ -76,6 +76,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                            const isSelected = selectedHour === h;
                            const key = `${selectedDay}-${h}`;
                            const block = schedule.ideal[key];
+                           // For this simplified modal, we mostly look at main 60m blocks or just primary slot
                            
                            return (
                                <button 

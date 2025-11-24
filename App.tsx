@@ -78,9 +78,9 @@ const AnimatedRoutes: React.FC<{
         <Route path="/" element={<Dashboard state={state} updateState={updateState} />} />
         <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} toggleTask={toggleTask} />} />
         <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} />} />
-        <Route path="/psych" element={<PsychologyLayer flashcards={state.flashcards} updateState={updateState} />} />
+        <Route path="/psych" element={<PsychologyLayer state={state} updateState={updateState} language={state.settings.language} />} />
         <Route path="/graphics" element={<AnalyticsLayer state={state} />} />
-        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} />} />
+        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} language={state.settings.language} />} />
         <Route path="/review" element={<WeeklyReview state={state} updateState={updateState} />} />
         <Route path="/rewards" element={<RewardShop state={state} updateState={updateState} />} />
         <Route path="/settings" element={<SettingsLayer state={state} updateState={updateState} onLogout={onLogout} />} />

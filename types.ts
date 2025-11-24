@@ -22,6 +22,7 @@ export interface Task {
   subtasks?: Subtask[]; // For "Swiss Cheese" method
   tags?: string[]; // Organization tags
   blocks: number; // Gamification value
+  duration?: number; // Duration in minutes (30 or 60), default 60
 }
 
 export interface DailyQuests {
@@ -44,10 +45,11 @@ export interface TimeBlock {
   category: BlockCategory;
   label: string;
   taskId?: string; // Link to a specific task
+  duration?: number; // Duration in minutes (30 or 60)
 }
 
 export interface WeeklySchedule {
-  current: Record<string, TimeBlock>; // Key format: "Day-Hour" e.g., "Mon-9"
+  current: Record<string, TimeBlock>; // Key format: "Day-Hour" e.g., "Mon-9" or "Mon-9-30"
   ideal: Record<string, TimeBlock>;
 }
 
@@ -61,7 +63,7 @@ export interface RewardItem {
 }
 
 export interface Settings {
-  language: 'en' | 'es' | 'fr' | 'de' | 'jp';
+  language: 'en' | 'es' | 'fr' | 'de' | 'jp' | 'ky';
   soundEnabled: boolean;
   theme: 'light' | 'dark' | 'sepia';
   reducedMotion: boolean;
@@ -99,6 +101,7 @@ export const INITIAL_STATE: AppState = {
       purpose: 'To build a solid foundation for the project.',
       tags: ['dev', 'setup'],
       blocks: 1,
+      duration: 60,
       subtasks: [
         { title: 'Define component props', completed: false },
         { title: 'Set up basic JSX layout', completed: false }
