@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 export type SoundType = 'none' | 'rain' | 'forest' | 'fire' | 'ocean' | 'night';
 
-// Switched to reliable MP3 sources from Mixkit for better browser support (Safari/iOS) and removed CORS restrictions
 const SOUND_URLS: Record<SoundType, string> = {
   none: '',
   rain: 'https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3', 
@@ -18,31 +17,41 @@ export const useAmbientSound = () => {
   const [volume, setVolume] = useState(0.5);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // When sound changes, update the ref and play
   useEffect(() => {
-    if (audioRef.current) {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const playAudio = async () => {
+      // Stop previous
+      audio.pause();
+
       if (selectedSound === 'none') {
-        audioRef.current.pause();
-        // Don't clear src immediately to avoid abrupt cuts, just pause
-      } else {
-        const newSrc = SOUND_URLS[selectedSound];
-        // Only reload if source actually changed
-        if (audioRef.current.src !== newSrc) {
-            audioRef.current.src = newSrc;
-            audioRef.current.load();
-        }
-        
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.warn("Audio play blocked. User interaction required first.", error);
-          });
+        return;
+      }
+
+      const newSrc = SOUND_URLS[selectedSound];
+      if (audio.src !== newSrc) {
+        audio.src = newSrc;
+        audio.load();
+      }
+
+      try {
+        await audio.play();
+      } catch (error: any) {
+        // Ignore AbortError which happens if the component unmounts or sound switches quickly
+        if (error.name !== 'AbortError') {
+          console.debug("Ambient sound playback prevented:", error);
         }
       }
-    }
+    };
+
+    playAudio();
+
+    return () => {
+      audio.pause();
+    };
   }, [selectedSound]);
 
-  // When volume changes, update the ref
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
@@ -50,14 +59,13 @@ export const useAmbientSound = () => {
   }, [volume]);
 
   // Return a render-able audio element
-  // Removed crossOrigin="anonymous" to allow opaque responses (fixes CORS blocks on external MP3s)
   const AudioElement = useCallback(() => {
     return React.createElement('audio', {
       ref: audioRef,
       loop: true,
-      preload: 'auto',
+      preload: 'none',
       style: { display: 'none' },
-      onError: (e: any) => console.error("Audio playback error:", e)
+      onError: (e: any) => console.debug("Audio resource failed to load:", e)
     });
   }, []);
 

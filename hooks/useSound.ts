@@ -1,13 +1,25 @@
 
 import { useCallback } from 'react';
 
-// Helper to check if sound is enabled globally
+// Shared AudioContext to prevent browser limit errors and manage state globally
+let sharedAudioCtx: AudioContext | null = null;
+
+const getAudioContext = () => {
+  if (!sharedAudioCtx) {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    if (Ctx) {
+      sharedAudioCtx = new Ctx();
+    }
+  }
+  return sharedAudioCtx;
+};
+
 const isSoundEnabled = () => {
   try {
     const stored = localStorage.getItem('intentional_settings');
     if (stored) {
       const settings = JSON.parse(stored);
-      return settings.soundEnabled !== false; // Default to true
+      return settings.soundEnabled !== false;
     }
     return true;
   } catch (e) {
@@ -16,14 +28,26 @@ const isSoundEnabled = () => {
 };
 
 export const useSound = () => {
-  const playTone = useCallback((freq: number, type: 'sine' | 'triangle' | 'square', duration: number, volume: number = 0.1) => {
+  // Helper to ensure context is running
+  const resumeContext = useCallback(async () => {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch (e) {
+        // Resume might fail if not triggered by user gesture, which is expected behavior
+      }
+    }
+    return ctx;
+  }, []);
+
+  const playTone = useCallback(async (freq: number, type: 'sine' | 'triangle' | 'square', duration: number, volume: number = 0.1) => {
     if (!isSoundEnabled()) return;
 
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
+      const ctx = await resumeContext();
+      if (!ctx) return;
       
-      const ctx = new AudioContext();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -39,27 +63,23 @@ export const useSound = () => {
       osc.start();
       osc.stop(ctx.currentTime + duration);
     } catch (e) {
-      // Ignore audio errors (browsers might block autoplay)
+      // Ignore audio errors
     }
-  }, []);
+  }, [resumeContext]);
 
   const playClick = useCallback(() => {
-    // Sharp, short tick for UI interactions
     playTone(800, 'triangle', 0.05, 0.05);
   }, [playTone]);
 
   const playSoftClick = useCallback(() => {
-    // Softer tick for typing or hover
     playTone(600, 'sine', 0.05, 0.03);
   }, [playTone]);
 
-  const playSuccess = useCallback(() => {
+  const playSuccess = useCallback(async () => {
     if (!isSoundEnabled()) return;
-    // Ascending major triad
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
+      const ctx = await resumeContext();
+      if (!ctx) return;
       
       const now = ctx.currentTime;
       [523.25, 659.25, 783.99].forEach((freq, i) => { // C Major
@@ -75,20 +95,17 @@ export const useSound = () => {
         osc.stop(now + (i * 0.1) + 0.5);
       });
     } catch (e) {}
-  }, []);
+  }, [resumeContext]);
 
   const playAdd = useCallback(() => {
-    // "Pop" sound
     playTone(400, 'sine', 0.1, 0.1);
   }, [playTone]);
 
-  const playDelete = useCallback(() => {
+  const playDelete = useCallback(async () => {
     if (!isSoundEnabled()) return;
-    // Descending slide
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
+      const ctx = await resumeContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
@@ -103,18 +120,16 @@ export const useSound = () => {
       osc.start();
       osc.stop(ctx.currentTime + 0.2);
     } catch (e) {}
-  }, []);
+  }, [resumeContext]);
 
-  const playWhoosh = useCallback(() => {
+  const playWhoosh = useCallback(async () => {
     if (!isSoundEnabled()) return;
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
+      const ctx = await resumeContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
-      // White noise approximation using oscillation for simplicity
       osc.type = 'sine';
       osc.frequency.setValueAtTime(200, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
@@ -127,7 +142,7 @@ export const useSound = () => {
       osc.start();
       osc.stop(ctx.currentTime + 0.2);
     } catch (e) {}
-  }, []);
+  }, [resumeContext]);
 
   return { playClick, playSoftClick, playSuccess, playAdd, playDelete, playWhoosh };
 };
