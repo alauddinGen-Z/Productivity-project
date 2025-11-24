@@ -36,6 +36,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const { selectedSound, setSelectedSound, volume, setVolume, AudioElement } = useAmbientSound();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   
   // Reading from props now
   const lang = language;
@@ -66,6 +67,13 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     }
   };
 
+  const handleComplete = () => {
+      setIsCompleting(true);
+      setTimeout(() => {
+          onCompleteSession();
+      }, 1000);
+  };
+
   const radius = 100; // Compact radius
   const circumference = 2 * Math.PI * radius;
   const totalTime = mode === 'focus' ? 25 * 60 : 5 * 60;
@@ -92,29 +100,41 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       {/* Session Done Overlay */}
       {isSessionDone && (
         <div className="absolute inset-0 z-50 bg-[#FAF9F6]/95 flex flex-col items-center justify-center p-8 text-center animate-fade-in backdrop-blur-sm">
-           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 text-emerald-600 animate-bounce">
-              <CheckCircle2 size={40} />
-           </div>
-           <h2 className="text-3xl font-serif font-bold text-stone-800 mb-2">{t('focus_session_done', lang)}</h2>
-           <p className="text-stone-500 mb-8 font-serif italic max-w-md">{t('focus_session_done_desc', lang)}</p>
-           
-           <div className="space-y-4 w-full max-w-xs">
-              <button 
-                onClick={onCompleteSession}
-                className="w-full bg-stone-800 text-white py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 transition-colors shadow-lg flex items-center justify-center gap-2"
-              >
-                 <CheckCircle2 size={16} />
-                 {t('focus_complete_task', lang)} (+{selectedTaskBlocks} Blocks)
-              </button>
-              
-              <button 
-                onClick={onContinueSession}
-                className="w-full bg-white text-stone-600 border border-stone-300 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800 transition-colors flex items-center justify-center gap-2"
-              >
-                 <RotateCw size={16} />
-                 {t('focus_start_break', lang)}
-              </button>
-           </div>
+           {!isCompleting ? (
+               <div className="flex flex-col items-center max-w-md w-full animate-fade-slide">
+                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 text-emerald-600 animate-bounce">
+                        <CheckCircle2 size={40} />
+                    </div>
+                    <h2 className="text-3xl font-serif font-bold text-stone-800 mb-2">{t('focus_session_done', lang)}</h2>
+                    <p className="text-stone-500 mb-8 font-serif italic max-w-md">{t('focus_session_done_desc', lang)}</p>
+                    
+                    <div className="space-y-4 w-full max-w-xs">
+                        <button 
+                            onClick={handleComplete}
+                            className="w-full bg-stone-800 text-white py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 transition-colors shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <CheckCircle2 size={16} />
+                            {t('focus_complete_task', lang)} (+{selectedTaskBlocks} Blocks)
+                        </button>
+                        
+                        <button 
+                            onClick={onContinueSession}
+                            className="w-full bg-white text-stone-600 border border-stone-300 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <RotateCw size={16} />
+                            {t('focus_start_break', lang)}
+                        </button>
+                    </div>
+               </div>
+           ) : (
+               <div className="flex flex-col items-center animate-fade-in duration-500 scale-125">
+                   <div className="relative">
+                       <CheckCircle2 size={120} className="text-emerald-500 animate-pulse" />
+                       <div className="absolute inset-0 bg-emerald-400 rounded-full blur-xl opacity-20 animate-ping"></div>
+                   </div>
+                   <h2 className="text-4xl font-serif font-bold text-emerald-600 mt-8 animate-fade-slide">{t('task_completed_msg', lang)}</h2>
+               </div>
+           )}
         </div>
       )}
 

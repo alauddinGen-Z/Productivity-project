@@ -18,6 +18,7 @@ interface TaskQuadrantColumnProps {
   deleteSubtask: (id: string, index: number) => void;
   toggleSubtask: (taskId: string, index: number) => void;
   updatePurpose: (id: string, purpose: string) => void;
+  updateTitle: (id: string, title: string) => void;
   updateTags: (id: string, tags: string[]) => void;
   getTaskSlot: (taskId: string) => string | null;
   onOpenScheduler: (taskId: string) => void;
@@ -40,6 +41,7 @@ export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
   deleteSubtask,
   toggleSubtask,
   updatePurpose,
+  updateTitle,
   updateTags,
   getTaskSlot,
   onOpenScheduler,
@@ -109,6 +111,7 @@ export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
             deleteSubtask={deleteSubtask}
             toggleSubtask={toggleSubtask}
             updatePurpose={updatePurpose}
+            updateTitle={updateTitle}
             updateTags={updateTags}
             scheduledSlot={getTaskSlot(task.id)}
             onOpenScheduler={onOpenScheduler}

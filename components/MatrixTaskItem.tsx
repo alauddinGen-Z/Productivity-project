@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Box, Clock, Tag, CornerDownRight, Trash2, GripVertical, Sparkles, CheckCircle2, Plus, X } from 'lucide-react';
+import { Check, Box, Clock, Tag, CornerDownRight, Trash2, GripVertical, Sparkles, CheckCircle2, Plus, X, Edit2 } from 'lucide-react';
 import { Task, TaskQuadrant, Settings } from '../types';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
@@ -16,6 +16,7 @@ interface MatrixTaskItemProps {
   deleteSubtask: (id: string, index: number) => void;
   toggleSubtask: (taskId: string, index: number) => void;
   updatePurpose: (id: string, purpose: string) => void;
+  updateTitle: (id: string, title: string) => void;
   updateTags: (id: string, tags: string[]) => void;
   scheduledSlot: string | null;
   onOpenScheduler: (id: string) => void;
@@ -34,6 +35,7 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
   deleteSubtask,
   toggleSubtask,
   updatePurpose,
+  updateTitle,
   updateTags,
   scheduledSlot,
   onOpenScheduler,
@@ -41,6 +43,7 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
   language = 'en'
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [localTitle, setLocalTitle] = useState(task.title || '');
   const [localTags, setLocalTags] = useState(task.tags?.join(', ') || '');
   const [localPurpose, setLocalPurpose] = useState(task.purpose || '');
   const [newSubtask, setNewSubtask] = useState('');
@@ -65,12 +68,19 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    setLocalTitle(task.title);
+  }, [task.title]);
+
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/json', JSON.stringify({ id: task.id, sourceQuadrant: quadrant }));
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleSaveEdit = () => {
+    if (localTitle.trim()) {
+      updateTitle(task.id, localTitle.trim());
+    }
     updatePurpose(task.id, localPurpose);
     const tags = localTags.split(',').map(t => t.trim()).filter(Boolean);
     updateTags(task.id, tags);
@@ -164,7 +174,7 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
       {isCompleting && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-sm">
              <div className="flex flex-col items-center animate-fade-slide">
-                 <CheckCircle2 size={32} className="text-emerald-500 mb-2" />
+                 <CheckCircle2 size={32} className="text-emerald-500 mb-2 scale-125 transition-transform duration-500" />
                  <span className="text-emerald-700 font-serif font-bold text-sm">{t('task_completed_msg', language)}</span>
              </div>
           </div>
@@ -186,9 +196,30 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
 
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
-             <span className={`font-serif text-stone-800 leading-snug break-words ${task.completed ? 'line-through text-stone-400' : ''}`}>
-               {task.title}
-             </span>
+             <div className="flex-1 flex items-center gap-2">
+                 {isEditing ? (
+                    <input 
+                      value={localTitle}
+                      onChange={(e) => setLocalTitle(e.target.value)}
+                      className="w-full text-sm font-serif border-b border-stone-300 focus:border-stone-800 outline-none bg-transparent"
+                      placeholder="Task title"
+                      autoFocus
+                    />
+                 ) : (
+                    <>
+                       <span className={`font-serif text-stone-800 leading-snug break-words ${task.completed ? 'line-through text-stone-400' : ''}`}>
+                         {task.title}
+                       </span>
+                       <button 
+                         onClick={() => { setIsEditing(true); playClick(); }} 
+                         className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-stone-600 transition-opacity p-0.5"
+                         title={t('task_edit_tooltip', language)}
+                       >
+                         <Edit2 size={10} />
+                       </button>
+                    </>
+                 )}
+             </div>
              
              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 bg-white/80 backdrop-blur-sm rounded p-0.5">
                 <button 
@@ -204,13 +235,6 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
                   title={scheduledSlot ? `${t('matrix_scheduled', language)}: ${scheduledSlot}` : t('task_schedule_tooltip', language)}
                 >
                    <Clock size={14} />
-                </button>
-                <button 
-                  onClick={() => { setIsEditing(!isEditing); playClick(); }}
-                  className="p-1.5 rounded-sm hover:bg-stone-100 text-stone-400"
-                  title={t('task_edit_tooltip', language)}
-                >
-                   <Tag size={14} />
                 </button>
                 <button 
                   onClick={() => { deleteTask(task.id); playDelete(); }}
@@ -323,7 +347,10 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
                    </div>
                 </div>
 
-                <div className="flex justify-end items-center mt-3">
+                <div className="flex justify-end items-center mt-3 gap-2">
+                   <button onClick={() => setIsEditing(false)} className="px-3 py-1 bg-stone-200 text-stone-600 text-[10px] uppercase tracking-wider rounded-sm hover:bg-stone-300">
+                      {t('reward_cancel', language)}
+                   </button>
                    <button onClick={() => { handleSaveEdit(); playClick(); }} className="px-3 py-1 bg-stone-800 text-white text-[10px] uppercase tracking-wider rounded-sm hover:bg-stone-700">
                       {t('task_save_changes', language)}
                    </button>

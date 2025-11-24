@@ -89,6 +89,10 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     setTasks(prev => prev.map(t => t.id === id ? { ...t, purpose } : t));
   }, [setTasks]);
 
+  const updateTitle = useCallback((id: string, title: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, title } : t));
+  }, [setTasks]);
+
   const updateTags = useCallback((id: string, tags: string[]) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, tags } : t));
   }, [setTasks]);
@@ -274,6 +278,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              deleteSubtask={handleDeleteSubtask}
              toggleSubtask={toggleSubtask}
              updatePurpose={updatePurpose}
+             updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
@@ -295,6 +300,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              deleteSubtask={handleDeleteSubtask}
              toggleSubtask={toggleSubtask}
              updatePurpose={updatePurpose}
+             updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
@@ -316,6 +322,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              deleteSubtask={handleDeleteSubtask}
              toggleSubtask={toggleSubtask}
              updatePurpose={updatePurpose}
+             updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
@@ -337,6 +344,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              deleteSubtask={handleDeleteSubtask}
              toggleSubtask={toggleSubtask}
              updatePurpose={updatePurpose}
+             updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
