@@ -16,14 +16,6 @@ interface TimeStructurerProps {
   language: Settings['language'];
 }
 
-const CATEGORIES: { id: BlockCategory; label: string; color: string; icon: React.ElementType }[] = [
-  { id: 'DEEP', label: 'Deep Work', color: 'bg-stone-100 text-stone-800 border-l-4 border-stone-800 font-bold', icon: Briefcase },
-  { id: 'SHALLOW', label: 'Admin / Shallow', color: 'bg-white text-stone-500 border-l-4 border-stone-300 italic', icon: Coffee },
-  { id: 'HEALTH', label: 'Health & Body', color: 'bg-emerald-50 text-emerald-800 border-l-4 border-emerald-600', icon: Heart },
-  { id: 'LIFE', label: 'Social & Life', color: 'bg-amber-50 text-amber-800 border-l-4 border-amber-600', icon: Users },
-  { id: 'REST', label: 'Rest & Recharge', color: 'bg-indigo-50 text-indigo-800 border-l-4 border-indigo-400', icon: Moon },
-];
-
 export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, updateSchedule, updateTasks, language }) => {
   const [view, setView] = useState<'ideal' | 'current'>('ideal');
   const [editingCell, setEditingCell] = useState<{ day: string, hour: number } | null>(null);
@@ -47,6 +39,17 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   const { playClick, playSoftClick, playAdd, playDelete, playWhoosh } = useSound();
 
   const currentScheduleMap = schedule[view];
+
+  // Helper to get translated categories
+  const getCategories = () => [
+    { id: 'DEEP' as BlockCategory, label: t('plan_cat_deep', language), color: 'bg-stone-100 text-stone-800 border-l-4 border-stone-800 font-bold', icon: Briefcase },
+    { id: 'SHALLOW' as BlockCategory, label: t('plan_cat_shallow', language), color: 'bg-white text-stone-500 border-l-4 border-stone-300 italic', icon: Coffee },
+    { id: 'HEALTH' as BlockCategory, label: t('plan_cat_health', language), color: 'bg-emerald-50 text-emerald-800 border-l-4 border-emerald-600', icon: Heart },
+    { id: 'LIFE' as BlockCategory, label: t('plan_cat_life', language), color: 'bg-amber-50 text-amber-800 border-l-4 border-amber-600', icon: Users },
+    { id: 'REST' as BlockCategory, label: t('plan_cat_rest', language), color: 'bg-indigo-50 text-indigo-800 border-l-4 border-indigo-400', icon: Moon },
+  ];
+
+  const categories = useMemo(() => getCategories(), [language]);
 
   // Calculate Statistics
   const stats = useMemo(() => {
@@ -100,7 +103,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     if (!editingCell) return;
     playAdd();
     
-    const finalLabel = tempBlock.label.trim() || CATEGORIES.find(c => c.id === tempBlock.category)?.label || 'Block';
+    const finalLabel = tempBlock.label.trim() || categories.find(c => c.id === tempBlock.category)?.label || 'Block';
     let blockToSave = { ...tempBlock, label: finalLabel, duration: 60 }; 
 
     if (addToMatrix && view === 'ideal') {
@@ -255,7 +258,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   };
 
   const renderSingleBlock = (block: TimeBlock) => {
-    const categoryInfo = CATEGORIES.find(c => c.id === block.category);
+    const categoryInfo = categories.find(c => c.id === block.category);
     if (!categoryInfo) return null;
     
     return (
@@ -330,7 +333,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
 
       {showStats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-white p-4 rounded-sm shadow-sm border border-stone-200 animate-fade-in">
-           {CATEGORIES.map(cat => (
+           {categories.map(cat => (
              <div key={cat.id} className="text-center p-2">
                <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{cat.label}</div>
                <div className="text-xl font-serif font-bold text-stone-800">
@@ -377,7 +380,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
             onSave={saveBlock}
             onDelete={deleteBlock}
             hasExistingBlock={!!schedule[view][`${editingCell.day}-${editingCell.hour}`]}
-            categories={CATEGORIES}
+            categories={categories}
             language={language}
         />
       )}

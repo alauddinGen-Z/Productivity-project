@@ -22,6 +22,7 @@ interface TaskQuadrantColumnProps {
   getTaskSlot: (taskId: string) => string | null;
   onOpenScheduler: (taskId: string) => void;
   selectedTags: string[];
+  uniqueTags: string[];
 }
 
 export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
@@ -41,7 +42,8 @@ export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
   updateTags,
   getTaskSlot,
   onOpenScheduler,
-  selectedTags
+  selectedTags,
+  uniqueTags
 }) => {
   const { playWhoosh } = useSound();
 
@@ -108,6 +110,7 @@ export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
             updateTags={updateTags}
             scheduledSlot={getTaskSlot(task.id)}
             onOpenScheduler={onOpenScheduler}
+            uniqueTags={uniqueTags}
           />
         ))}
       </div>

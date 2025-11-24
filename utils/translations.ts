@@ -23,12 +23,17 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     dash_intent_desc: "Before you begin, anchor your heart. What is the ultimate meaning (Niyyah) behind your actions today?",
     dash_intent_placeholder: "e.g., To seek beneficial knowledge...",
     dash_set_btn: "Set Intention",
+    dash_intent_saved: "Intention set.",
     dash_vision_title: "12-Month Vision",
     dash_vision_sub: "Future Celebration",
+    dash_vision_placeholder: "Describe exactly what you are celebrating one year from now...",
+    dash_vision_empty: "\"Write the vision and make it plain...\"",
     dash_thing_title: "The \"Thing\"",
     dash_thing_sub: "Intrinsic Fulfillment",
+    dash_thing_placeholder: "What would you do even if you weren't paid?",
     dash_quests_title: "Daily Side Quests",
     dash_quests_sub: "Happiness of Pursuit",
+    dash_quests_placeholder: "...",
 
     // Matrix
     matrix_do: "Do First",
@@ -41,11 +46,18 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     matrix_delete_desc: "Distractions",
     matrix_view_matrix: "Eisenhower Matrix",
     matrix_view_list: "Ivy Lee Method",
-    matrix_add_btn: "Add Task",
+    matrix_view_list_desc: "Simplicity is the ultimate sophistication.",
+    matrix_empty: "Your mind is clear.",
+    matrix_complete_btn: "Complete",
     matrix_input_placeholder: "What needs to be done?",
     matrix_purpose_placeholder: "Why is this important? (Niyyah)",
     matrix_pick_time: "Pick Time",
     matrix_add_task_btn: "Add Task",
+    matrix_tag_placeholder: "Tags (comma separated)...",
+    matrix_subtask_add: "Add step...",
+    matrix_subtask_manage: "Manage Subtasks",
+    matrix_save_changes: "Save Changes",
+    matrix_scheduled: "Scheduled",
     
     // Sorting & Filtering
     sort_label: "Sort",
@@ -59,12 +71,22 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     filter_label: "Filter",
     filter_tags: "Tags",
     filter_clear: "Clear",
+    filter_no_tags: "No tags found",
 
     // Focus
     focus_deep: "Deep Work",
     focus_rest: "Rest Phase",
     focus_quote: "\"The ability to concentrate without distraction...\"",
+    focus_rest_desc: "There is no active \"Focus Block\" scheduled for right now in your Time Structure.",
+    focus_rest_advice: "True productivity requires respecting the recovery phase.",
+    focus_check_schedule: "Check Schedule",
+    focus_visit_shop: "Visit Reward Shop",
+    focus_active_target: "Active Target",
+    focus_scheduled_now: "Scheduled For Now",
+    focus_category: "Category",
     focus_select_target: "Select Your Target",
+    focus_manage_tasks: "Manage Tasks",
+    focus_no_tasks: "No open tasks found.",
     focus_checklist: "Environment Check",
     focus_enter_btn: "Enter The Zone",
     focus_resume: "Resume",
@@ -125,7 +147,10 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     stats_quests: "Daily Quests",
     stats_weekly_exec: "Weekly Execution",
     stats_energy: "Energy Allocation",
+    stats_pending: "Pending Tasks by Quadrant",
+    stats_active: "Active",
     stats_system_health: "System Health",
+    stats_consistency: "Consistency Metrics",
     stats_knowledge: "Knowledge Bank",
     stats_cards: "Cards",
 
@@ -134,6 +159,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     review_quote: "\"Measure the Gain, not the Gap.\"",
     review_wins: "1. Three Wins This Week",
     review_alignment: "2. Niyyah Alignment Check",
+    review_alignment_sub: "My intention was:",
     review_alignment_placeholder: "Did my actions align with my intentions? What distracted me?",
     review_archived: "Review Archived",
     review_archived_sub: "Your insights have been captured for the future.",
@@ -155,6 +181,11 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     plan_type: "Type",
     plan_label: "Label",
     plan_matrix_add: "Add to Task Matrix",
+    plan_cat_deep: "Deep Work",
+    plan_cat_shallow: "Admin / Shallow",
+    plan_cat_health: "Health & Body",
+    plan_cat_life: "Social & Life",
+    plan_cat_rest: "Rest & Recharge",
 
     // Settings
     settings_title: "System Settings",
@@ -167,7 +198,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
   },
   // Kyrgyz Translation
   ky: {
-    nav_dashboard: "Максат & Башкаруу панели",
+    nav_dashboard: "Максат & Башкаруу",
     nav_tasks: "Тапшырмалар & Процесс",
     nav_plan: "Убакыт структурасы",
     nav_focus: "Фокус зонасы",
@@ -183,12 +214,17 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     dash_intent_desc: "Баштаардан мурун, жүрөгүңүздү бекемдеңиз. Бүгүнкү иш-аракеттериңиздин түпкү мааниси (Ниет) эмнеде?",
     dash_intent_placeholder: "мисалы: Пайдалуу билим издөө...",
     dash_set_btn: "Ниетти коюу",
+    dash_intent_saved: "Ниет коюлду.",
     dash_vision_title: "12 Айлык Көрүнүш",
     dash_vision_sub: "Келечектеги майрам",
+    dash_vision_placeholder: "Бир жылдан кийин эмнени белгилеп жатканыңызды так сүрөттөп бериңиз...",
+    dash_vision_empty: "\"Көрүнүштү жаз жана аны айкын кыл...\"",
     dash_thing_title: "\"Ошол Иш\"",
     dash_thing_sub: "Ички канааттануу",
+    dash_thing_placeholder: "Сизге эч ким төлөбөсө да эмне менен алектенмексиз?",
     dash_quests_title: "Күнүмдүк Тапшырмалар",
     dash_quests_sub: "Изденүү бактысы",
+    dash_quests_placeholder: "...",
 
     matrix_do: "Азыр Аткаруу",
     matrix_do_desc: "Шашылыш & Маанилүү",
@@ -200,11 +236,18 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     matrix_delete_desc: "Алаксытуулар",
     matrix_view_matrix: "Эйзенхауэр Матрицасы",
     matrix_view_list: "Айви Ли Методу",
-    matrix_add_btn: "Тапшырма кошуу",
+    matrix_view_list_desc: "Жөнөкөйлүк - эң жогорку татаалдык.",
+    matrix_empty: "Сиздин оюңуз таза.",
+    matrix_complete_btn: "Бүтүрүү",
     matrix_input_placeholder: "Эмне кылуу керек?",
-    matrix_purpose_placeholder: "Эмне үчүн бул маанилүү?",
+    matrix_purpose_placeholder: "Эмне үчүн бул маанилүү? (Ниет)",
     matrix_pick_time: "Убакытты тандоо",
     matrix_add_task_btn: "Тапшырманы кошуу",
+    matrix_tag_placeholder: "Тегдер (үтүр менен)...",
+    matrix_subtask_add: "Кадам кошуу...",
+    matrix_subtask_manage: "Кадамдарды башкаруу",
+    matrix_save_changes: "Сактоо",
+    matrix_scheduled: "Пландалган",
 
     sort_label: "Сорттоо",
     sort_priority: "Приоритет (Бакалар)",
@@ -217,11 +260,21 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     filter_label: "Фильтр",
     filter_tags: "Тегдер",
     filter_clear: "Тазалоо",
+    filter_no_tags: "Тегдер табылган жок",
 
     focus_deep: "Терең Иш",
     focus_rest: "Эс алуу фазасы",
     focus_quote: "\"Алаксыбай туруп көңүл топтоо жөндөмү...\"",
+    focus_rest_desc: "Убакыт структураңызда учурда активдүү \"Фокус блогу\" пландаштырылган эмес.",
+    focus_rest_advice: "Чыныгы өндүрүмдүүлүк калыбына келтирүү фазасын урматтоону талап кылат.",
+    focus_check_schedule: "Графикти текшерүү",
+    focus_visit_shop: "Сыйлык дүкөнү",
+    focus_active_target: "Активдүү Максат",
+    focus_scheduled_now: "Азыркыга пландалган",
+    focus_category: "Категория",
     focus_select_target: "Максатыңызды тандаңыз",
+    focus_manage_tasks: "Тапшырмаларды башкаруу",
+    focus_no_tasks: "Ачык тапшырмалар табылган жок.",
     focus_checklist: "Чөйрөнү текшерүү",
     focus_enter_btn: "Зонага кирүү",
     focus_resume: "Улантуу",
@@ -279,7 +332,10 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     stats_quests: "Күнүмдүк квесттер",
     stats_weekly_exec: "Жумалык аткаруу",
     stats_energy: "Энергияны бөлүштүрүү",
+    stats_pending: "Күтүлүүдөгү Тапшырмалар",
+    stats_active: "Активдүү",
     stats_system_health: "Системанын абалы",
+    stats_consistency: "Туруктуулук көрсөткүчтөрү",
     stats_knowledge: "Билим банкы",
     stats_cards: "Карталар",
 
@@ -287,6 +343,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     review_quote: "\"Айырманы эмес, Жетишкендикти өлчө.\"",
     review_wins: "1. Бул жумадагы үч жеңиш",
     review_alignment: "2. Ниеттин шайкештигин текшерүү",
+    review_alignment_sub: "Менин ниетим:",
     review_alignment_placeholder: "Менин аракеттерим ниетиме дал келдиби? Эмне алаксытты?",
     review_archived: "Сереп архивделди",
     review_archived_sub: "Сиздин түшүнүктөрүңүз келечек үчүн сакталды.",
@@ -307,6 +364,11 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     plan_type: "Түрү",
     plan_label: "Аталышы",
     plan_matrix_add: "Матрицага кошуу",
+    plan_cat_deep: "Терең Иш",
+    plan_cat_shallow: "Админ / Жеңил",
+    plan_cat_health: "Ден соолук",
+    plan_cat_life: "Жашоо & Социалдык",
+    plan_cat_rest: "Эс алуу",
 
     settings_title: "Система Орнотуулары",
     settings_audio: "Аудио Тажрыйбасы",
@@ -316,7 +378,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     settings_reset: "Маалыматтарды баштапкы абалга келтирүү",
     settings_logout: "Чыгуу",
   },
-  // Fallbacks for other languages (mapping to English/native where simple, but for brevity using EN keys for missing ones or duplicates)
+  // Fallbacks for other languages
   es: {
     nav_dashboard: "Propósito y Panel",
     nav_tasks: "Tareas y Procesos",
@@ -329,9 +391,6 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     nav_settings: "Ajustes",
     nav_backup: "Copia de Seguridad",
     nav_switch: "Cambiar Perfil",
-    // ... Copy of EN keys used as fallback or implement properly. For brevity in this diff, assuming user wants mainly KY/EN support.
-    // Ideally we would duplicate EN keys here for safety or use a proxy. 
-    // Implementing Critical ES overrides:
     sort_label: "Ordenar",
     filter_label: "Filtrar",
     reward_title: "Descanso y Recompensa",
@@ -340,18 +399,15 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
   },
   fr: {
     nav_dashboard: "But et Tableau de Bord",
-    // ... (Existing FR keys) ...
     reward_title: "Repos et Récompense",
     stats_title: "Progrès et Statistiques",
   },
   de: {
     nav_dashboard: "Zweck & Dashboard",
-    // ...
     reward_title: "Ruhe & Belohnung",
   },
   jp: {
     nav_dashboard: "目的とダッシュボード",
-    // ...
     reward_title: "休憩と報酬",
   }
 };

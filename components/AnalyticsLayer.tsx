@@ -155,7 +155,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
           <div className="flex justify-between items-start mb-8">
              <div>
                 <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_energy', lang)}</h3>
-                <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">Pending Tasks by Quadrant</p>
+                <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_pending', lang)}</p>
              </div>
              <Target className="text-stone-200" size={24} />
           </div>
@@ -170,7 +170,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
               ]} />
               <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none transform -rotate-0">
                   <span className="text-2xl font-serif font-bold text-stone-800">{taskStats.pendingTotal}</span>
-                  <span className="text-[9px] text-stone-400 uppercase tracking-widest">Active</span>
+                  <span className="text-[9px] text-stone-400 uppercase tracking-widest">{t('stats_active', lang)}</span>
               </div>
             </div>
 
@@ -198,7 +198,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
            <div className="flex justify-between items-start mb-8">
              <div>
                 <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_system_health', lang)}</h3>
-                <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">Consistency Metrics</p>
+                <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_consistency', lang)}</p>
              </div>
              <Layers className="text-stone-200" size={24} />
           </div>

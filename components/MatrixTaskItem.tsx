@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Check, Box, Clock, Tag, CornerDownRight, Trash2, GripVertical, Sparkles, CheckCircle2, Plus, X } from 'lucide-react';
 import { Task, TaskQuadrant } from '../types';
 import { useSound } from '../hooks/useSound';
@@ -18,6 +18,7 @@ interface MatrixTaskItemProps {
   updateTags: (id: string, tags: string[]) => void;
   scheduledSlot: string | null;
   onOpenScheduler: (id: string) => void;
+  uniqueTags: string[];
 }
 
 export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
@@ -33,7 +34,8 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
   updatePurpose,
   updateTags,
   scheduledSlot,
-  onOpenScheduler
+  onOpenScheduler,
+  uniqueTags
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [localTags, setLocalTags] = useState(task.tags?.join(', ') || '');
@@ -41,7 +43,24 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
   const [newSubtask, setNewSubtask] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
   
+  // Tag Autocomplete
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [activeTagIndex, setActiveTagIndex] = useState(0);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const tagWrapperRef = useRef<HTMLDivElement>(null);
+  
   const { playSuccess, playClick, playDelete } = useSound();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagWrapperRef.current && !tagWrapperRef.current.contains(event.target as Node)) {
+        setShowTagSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/json', JSON.stringify({ id: task.id, sourceQuadrant: quadrant }));
@@ -79,6 +98,56 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
   const onToggleSubtask = (idx: number) => {
       playClick();
       toggleSubtask(task.id, idx);
+  };
+
+  const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalTags(val);
+    const parts = val.split(',');
+    const currentInput = parts[parts.length - 1].trim().toLowerCase();
+    
+    if (currentInput) {
+       const alreadyUsed = parts.slice(0, -1).map(p => p.trim().toLowerCase());
+       const matches = uniqueTags.filter(t => 
+         t.toLowerCase().includes(currentInput) && 
+         !alreadyUsed.includes(t.toLowerCase()) &&
+         t.toLowerCase() !== currentInput
+       );
+       setTagSuggestions(matches);
+       setShowTagSuggestions(matches.length > 0);
+       setActiveTagIndex(0);
+    } else {
+       setShowTagSuggestions(false);
+    }
+  };
+
+  const selectTag = (tag: string) => {
+      const parts = localTags.split(',');
+      parts.pop(); 
+      parts.push(tag);
+      setLocalTags(parts.join(', ').trim() + ', ');
+      setShowTagSuggestions(false);
+      tagInputRef.current?.focus();
+      playClick();
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+      if (showTagSuggestions && tagSuggestions.length > 0) {
+          if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setActiveTagIndex(prev => (prev + 1) % tagSuggestions.length);
+          } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setActiveTagIndex(prev => (prev - 1 + tagSuggestions.length) % tagSuggestions.length);
+          } else if (e.key === 'Enter' || e.key === 'Tab') {
+              e.preventDefault();
+              selectTag(tagSuggestions[activeTagIndex]);
+          } else if (e.key === 'Escape') {
+              setShowTagSuggestions(false);
+          }
+      } else if (e.key === 'Enter') {
+          handleSaveEdit();
+      }
   };
 
   return (
@@ -190,12 +259,37 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
                   placeholder="The 'Why' (Niyyah)..."
                   className="w-full text-xs bg-white p-2 border border-stone-200 mb-2 focus:border-stone-400 outline-none"
                 />
-                <input 
-                  value={localTags}
-                  onChange={e => setLocalTags(e.target.value)}
-                  placeholder="Tags (comma separated)..."
-                  className="w-full text-xs bg-white p-2 border border-stone-200 mb-2 focus:border-stone-400 outline-none"
-                />
+                
+                <div className="relative" ref={tagWrapperRef}>
+                    <input 
+                      ref={tagInputRef}
+                      value={localTags}
+                      onChange={handleTagChange}
+                      onKeyDown={handleTagKeyDown}
+                      placeholder="Tags (comma separated)..."
+                      className="w-full text-xs bg-white p-2 border border-stone-200 mb-2 focus:border-stone-400 outline-none"
+                    />
+                    {showTagSuggestions && (
+                        <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-stone-200 shadow-xl rounded-sm z-50 max-h-32 overflow-y-auto custom-scrollbar flex flex-col">
+                             <div className="px-3 py-2 text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-stone-50 border-b border-stone-100 sticky top-0">
+                                Suggestions
+                             </div>
+                             {tagSuggestions.map((tag, index) => (
+                                <button 
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => selectTag(tag)}
+                                    className={`text-left px-3 py-2 text-xs font-serif transition-colors flex items-center justify-between ${
+                                        index === activeTagIndex ? 'bg-amber-50 text-amber-900' : 'text-stone-600 hover:bg-stone-50'
+                                    }`}
+                                >
+                                    <span>#{tag}</span>
+                                    {index === activeTagIndex && <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Enter</span>}
+                                </button>
+                             ))}
+                        </div>
+                    )}
+                </div>
                 
                 <div className="mt-2 pt-2 border-t border-stone-100">
                    <div className="text-[10px] font-bold text-stone-400 mb-2 uppercase tracking-wide">Manage Subtasks</div>

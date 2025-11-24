@@ -129,7 +129,7 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
                 </div>
                 <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1">
                    {uniqueTags.length === 0 ? (
-                       <div className="px-2 py-2 text-xs text-stone-400 italic">No tags found</div>
+                       <div className="px-2 py-2 text-xs text-stone-400 italic">{t('filter_no_tags', language)}</div>
                    ) : (
                        uniqueTags.map(tag => (
                            <button

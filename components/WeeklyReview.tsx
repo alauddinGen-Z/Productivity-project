@@ -128,7 +128,7 @@ export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ state, updateState }
         
         <div>
           <p className="font-serif font-bold text-lg text-stone-700 mb-2">{t('review_alignment', lang)}</p>
-          <p className="text-xs text-stone-400 mb-2">My intention was: <span className="italic">"{state.currentNiyyah}"</span></p>
+          <p className="text-xs text-stone-400 mb-2">{t('review_alignment_sub', lang)} <span className="italic">"{state.currentNiyyah}"</span></p>
           <textarea 
             value={alignment}
             onChange={(e) => setAlignment(e.target.value)}

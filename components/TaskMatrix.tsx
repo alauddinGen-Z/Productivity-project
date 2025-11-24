@@ -278,6 +278,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
+             uniqueTags={uniqueTags}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.SCHEDULE}
@@ -297,6 +298,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
+             uniqueTags={uniqueTags}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.DELEGATE}
@@ -316,6 +318,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
+             uniqueTags={uniqueTags}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.DELETE}
@@ -335,6 +338,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              getTaskSlot={getTaskSlot}
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
+             uniqueTags={uniqueTags}
           />
         </div>
       ) : (
@@ -343,12 +347,12 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
           <div className="absolute top-0 left-0 w-full h-2 bg-stone-800"></div>
           <div className="text-center mb-12">
             <h2 className="text-3xl font-serif font-bold text-stone-800">{t('matrix_view_list', language)}</h2>
-            <p className="text-stone-500 mt-3 font-serif italic">Simplicity is the ultimate sophistication.</p>
+            <p className="text-stone-500 mt-3 font-serif italic">{t('matrix_view_list_desc', language)}</p>
           </div>
 
           <div className="space-y-6">
             {ivyLeeTasks.length === 0 ? (
-              <div className="text-center py-12 text-stone-400 font-serif italic">Your mind is clear.</div>
+              <div className="text-center py-12 text-stone-400 font-serif italic">{t('matrix_empty', language)}</div>
             ) : (
               ivyLeeTasks.map((task, index) => (
                 <div 
@@ -388,7 +392,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                         onClick={() => toggleTask(task.id)}
                         className="text-xs uppercase tracking-widest border border-stone-800 px-4 py-2 hover:bg-stone-800 hover:text-white transition-colors"
                       >
-                        Complete
+                        {t('matrix_complete_btn', language)}
                       </button>
                     )}
                   </div>

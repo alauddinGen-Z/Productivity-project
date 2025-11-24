@@ -204,19 +204,28 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                           value={tags}
                           onChange={handleTagChange}
                           onKeyDown={handleTagKeyDown}
-                          placeholder={t('filter_tags', language) + "..."}
+                          placeholder={t('matrix_tag_placeholder', language)}
                           className="w-full bg-transparent text-xs text-stone-500 focus:outline-none placeholder:text-stone-300 ml-1"
                         />
                         {showTagSuggestions && (
-                            <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-stone-200 shadow-xl rounded-sm z-50 max-h-32 overflow-y-auto custom-scrollbar flex flex-col">
+                            <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-stone-200 shadow-xl rounded-sm z-50 max-h-40 overflow-y-auto custom-scrollbar flex flex-col">
+                                <div className="px-3 py-2 text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-stone-50 border-b border-stone-100 sticky top-0">
+                                    Suggestions
+                                </div>
                                 {tagSuggestions.map((tag, index) => (
                                     <button 
                                         key={tag}
                                         type="button"
                                         onClick={() => selectTag(tag)}
-                                        className={`text-left px-3 py-1.5 text-xs font-serif transition-colors ${index === activeTagIndex ? 'bg-amber-50 text-amber-800 font-bold' : 'text-stone-600 hover:bg-stone-50'}`}
+                                        className={`text-left px-3 py-2 text-xs font-serif transition-colors flex items-center justify-between group ${
+                                            index === activeTagIndex ? 'bg-amber-50 text-amber-900' : 'text-stone-600 hover:bg-stone-50'
+                                        }`}
                                     >
-                                        #{tag}
+                                        <span className="flex items-center gap-2">
+                                           <Tag size={10} className={index === activeTagIndex ? 'text-amber-500' : 'text-stone-300'} />
+                                           #{tag}
+                                        </span>
+                                        {index === activeTagIndex && <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Enter</span>}
                                     </button>
                                 ))}
                             </div>

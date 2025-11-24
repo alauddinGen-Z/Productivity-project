@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Coffee, BellOff, Smartphone, Check, Target, CheckCircle2, Clock, Moon, Zap } from 'lucide-react';
-import { Task, WeeklySchedule, TimeBlock } from '../types';
+import { Task, WeeklySchedule, TimeBlock, Settings } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { FocusTimer } from './FocusTimer';
 import { useSound } from '../hooks/useSound';
@@ -11,9 +11,10 @@ interface FocusLayerProps {
   tasks: Task[];
   toggleTask: (id: string) => void;
   schedule: WeeklySchedule;
+  language?: Settings['language'];
 }
 
-export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, schedule }) => {
+export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, schedule, language = 'en' }) => {
   const navigate = useNavigate();
   const { playClick, playSuccess, playSoftClick } = useSound();
   
@@ -29,10 +30,8 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
   const [currentTimeKey, setCurrentTimeKey] = useState<string>('');
   const [currentBlock, setCurrentBlock] = useState<TimeBlock | null>(null);
 
-  // Reading language from localStorage fallback similar to other components
-  const settingsStr = localStorage.getItem('intentional_settings');
-  const settings = settingsStr ? JSON.parse(settingsStr) : { language: 'en' };
-  const lang = settings.language;
+  // Reading language from props or fallback to 'en'
+  const lang = language;
 
   useEffect(() => {
     const updateTimeContext = () => {
@@ -189,9 +188,25 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
   return (
     <div className="max-w-xl mx-auto mt-8 animate-fade-in pb-12">
       <div className="bg-white rounded-sm shadow-md border border-stone-200 overflow-hidden">
-        <div className="bg-[#292524] p-10 text-stone-100 text-center border-b border-stone-800 relative">
-          <h2 className="text-4xl font-serif font-bold mb-3">{t('focus_deep', lang)}</h2>
-          <p className="text-stone-400 font-serif italic">{t('focus_quote', lang)}</p>
+        {/* Dynamic Header */}
+        <div className="bg-[#292524] p-10 text-stone-100 text-center border-b border-stone-800 relative transition-all duration-300">
+          {selectedTask ? (
+            <div className="animate-fade-in space-y-2">
+                <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">
+                    <Target size={14} />
+                    <span>Active Target</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-white leading-tight break-words">{selectedTask.title}</h2>
+                {selectedTask.purpose && (
+                    <p className="text-stone-400 font-serif italic max-w-lg mx-auto text-sm">{selectedTask.purpose}</p>
+                )}
+            </div>
+          ) : (
+            <>
+                <h2 className="text-4xl font-serif font-bold mb-3">{t('focus_deep', lang)}</h2>
+                <p className="text-stone-400 font-serif italic">{t('focus_quote', lang)}</p>
+            </>
+          )}
           
           <div className="absolute top-4 right-4 flex items-center gap-2 bg-stone-800/80 px-3 py-1.5 rounded-full border border-stone-700">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -243,21 +258,22 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
                               <div 
                                   key={task.id}
                                   onClick={() => { setSelectedTaskId(task.id); playSoftClick(); }}
-                                  className={`p-3 rounded-sm border cursor-pointer transition-all flex items-center justify-between group ${
+                                  className={`p-4 rounded-sm border cursor-pointer transition-all duration-200 flex items-center justify-between group relative overflow-hidden ${
                                       isSelected 
-                                      ? 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-[1.02]' 
+                                      ? 'bg-stone-800 text-white border-stone-800 shadow-xl transform scale-[1.02] z-10' 
                                       : isScheduledNow 
-                                          ? 'bg-amber-100 border-amber-300 text-stone-800 shadow-sm' 
-                                          : 'bg-white border-stone-200 hover:border-stone-400 text-stone-600'
+                                          ? 'bg-amber-50 border-amber-300 text-stone-800 shadow-sm hover:shadow-md' 
+                                          : 'bg-white border-stone-200 hover:border-stone-400 text-stone-600 hover:shadow-md'
                                   }`}
                               >
-                                  <div className="flex flex-col overflow-hidden">
+                                  {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 animate-pulse"></div>}
+                                  <div className="flex flex-col overflow-hidden flex-1">
                                       <div className="flex items-center gap-2">
                                           {isScheduledNow && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isSelected ? 'bg-amber-500 text-white' : 'bg-amber-200 text-amber-800'}`}>Now</span>}
-                                          <span className="text-sm font-serif truncate">{task.title}</span>
+                                          <span className="text-sm font-serif truncate font-medium">{task.title}</span>
                                       </div>
                                   </div>
-                                  {isSelected && <Check size={16} className="text-emerald-400" />}
+                                  {isSelected && <Check size={16} className="text-emerald-400 ml-3" />}
                               </div>
                           );
                       })}
@@ -268,9 +284,9 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
           <div className="space-y-3">
               <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">{t('focus_checklist', lang)}</div>
               {[
-              { key: 'phoneSilent', label: 'Phone silent & away', icon: Smartphone },
-              { key: 'notificationsOff', label: 'Notifications disabled', icon: BellOff },
-              { key: 'waterReady', label: 'Hydration ready', icon: Coffee },
+              { key: 'phoneSilent', label: t('focus_phone', lang), icon: Smartphone },
+              { key: 'notificationsOff', label: t('focus_notif', lang), icon: BellOff },
+              { key: 'waterReady', label: t('focus_water', lang), icon: Coffee },
               ].map(({ key, label, icon: Icon }) => (
               <div 
                   key={key}
