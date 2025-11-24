@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, Volume2, X, CloudRain, TreePine, Flame, Waves, Moon, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
+import { Play, Pause, Volume2, X, CloudRain, TreePine, Flame, Waves, Moon, VolumeX, Maximize2, Minimize2, CheckCircle2, RotateCw } from 'lucide-react';
 import { useAmbientSound, SoundType } from '../hooks/useAmbientSound';
 import { t } from '../utils/translations';
 import { Settings } from '../types';
@@ -10,9 +10,13 @@ interface FocusTimerProps {
   mode: 'focus' | 'break';
   timeLeft: number;
   isActive: boolean;
+  isSessionDone: boolean;
   onToggle: () => void;
   onReset: () => void;
+  onCompleteSession: () => void;
+  onContinueSession: () => void;
   selectedTaskTitle: string | undefined;
+  selectedTaskBlocks: number;
   language: Settings['language'];
 }
 
@@ -20,9 +24,13 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   mode, 
   timeLeft, 
   isActive, 
+  isSessionDone,
   onToggle, 
   onReset,
+  onCompleteSession,
+  onContinueSession,
   selectedTaskTitle,
+  selectedTaskBlocks,
   language
 }) => {
   const { selectedSound, setSelectedSound, volume, setVolume, AudioElement } = useAmbientSound();
@@ -80,6 +88,35 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       
       {/* Ensure Audio Element is in DOM */}
       <AudioElement />
+
+      {/* Session Done Overlay */}
+      {isSessionDone && (
+        <div className="absolute inset-0 z-50 bg-[#FAF9F6]/95 flex flex-col items-center justify-center p-8 text-center animate-fade-in backdrop-blur-sm">
+           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 text-emerald-600 animate-bounce">
+              <CheckCircle2 size={40} />
+           </div>
+           <h2 className="text-3xl font-serif font-bold text-stone-800 mb-2">{t('focus_session_done', lang)}</h2>
+           <p className="text-stone-500 mb-8 font-serif italic max-w-md">{t('focus_session_done_desc', lang)}</p>
+           
+           <div className="space-y-4 w-full max-w-xs">
+              <button 
+                onClick={onCompleteSession}
+                className="w-full bg-stone-800 text-white py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 transition-colors shadow-lg flex items-center justify-center gap-2"
+              >
+                 <CheckCircle2 size={16} />
+                 {t('focus_complete_task', lang)} (+{selectedTaskBlocks} Blocks)
+              </button>
+              
+              <button 
+                onClick={onContinueSession}
+                className="w-full bg-white text-stone-600 border border-stone-300 py-4 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800 transition-colors flex items-center justify-center gap-2"
+              >
+                 <RotateCw size={16} />
+                 {t('focus_start_break', lang)}
+              </button>
+           </div>
+        </div>
+      )}
 
       {/* 1. Header Area */}
       <div className="w-full max-w-lg flex justify-between items-start shrink-0 h-16">

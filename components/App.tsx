@@ -72,16 +72,17 @@ const AnimatedRoutes: React.FC<{
   onLogout: () => void;
 }> = ({ state, updateState, updateTasks, updateSchedule, toggleTask, onLogout }) => {
   const location = useLocation();
+  const lang = state.settings.language;
 
   return (
     <div key={location.pathname} className="animate-fade-slide">
       <Routes location={location}>
         <Route path="/" element={<Dashboard state={state} updateState={updateState} />} />
-        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} toggleTask={toggleTask} language={state.settings.language} />} />
-        <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} language={state.settings.language} />} />
-        <Route path="/psych" element={<PsychologyLayer state={state} updateState={updateState} language={state.settings.language} />} />
+        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} toggleTask={toggleTask} language={lang} />} />
+        <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} language={lang} />} />
+        <Route path="/psych" element={<PsychologyLayer state={state} updateState={updateState} language={lang} />} />
         <Route path="/graphics" element={<AnalyticsLayer state={state} />} />
-        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} language={state.settings.language} />} />
+        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} language={lang} />} />
         <Route path="/review" element={<WeeklyReview state={state} updateState={updateState} />} />
         <Route path="/rewards" element={<RewardShop state={state} updateState={updateState} />} />
         <Route path="/settings" element={<SettingsLayer state={state} updateState={updateState} onLogout={onLogout} />} />

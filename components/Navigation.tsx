@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -46,7 +46,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   const location = useLocation();
   const { playClick, playSoftClick } = useSound();
   
-  const navItems = [
+  // Memoize nav items to ensure they update when language changes
+  const navItems = useMemo(() => [
     { path: '/', label: t('nav_dashboard', language), icon: LayoutDashboard, loaderKey: 'dashboard' },
     { path: '/tasks', label: t('nav_tasks', language), icon: ListTodo, loaderKey: 'tasks' },
     { path: '/plan', label: t('nav_plan', language), icon: CalendarClock, loaderKey: 'plan' },
@@ -55,7 +56,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     { path: '/psych', label: t('nav_psych', language), icon: BrainCircuit, loaderKey: 'psych' },
     { path: '/graphics', label: t('nav_stats', language), icon: PieChart, loaderKey: 'analytics' },
     { path: '/review', label: t('nav_review', language), icon: BarChart3, loaderKey: 'review' },
-  ];
+  ], [language]);
 
   return (
     <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#292524] text-stone-300 transform transition-transform duration-200 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 flex flex-col shadow-xl font-serif`}>

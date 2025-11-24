@@ -93,6 +93,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
   const [timeLeft, setTimeLeft] = useState(FOCUS_DURATION);
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
+  const [isSessionDone, setIsSessionDone] = useState(false);
 
   useEffect(() => {
     let interval: any;
@@ -100,13 +101,14 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
       interval = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && isActive) {
       setIsActive(false);
-      playSuccess(); // Play sound when timer ends
+      playSuccess(); 
       if (mode === 'focus') {
-        setMode('break');
-        setTimeLeft(BREAK_DURATION);
+        // Session Complete: Wait for user input
+        setIsSessionDone(true);
       } else {
+        // Break Complete: Auto switch back to focus ready state
         setMode('focus');
         setTimeLeft(FOCUS_DURATION);
       }
@@ -123,7 +125,8 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
     playClick();
     setIsActive(false);
     setTimeLeft(mode === 'focus' ? FOCUS_DURATION : BREAK_DURATION);
-    if (isDeepWorkMode) setIsDeepWorkMode(false); // If exiting full screen mode
+    setIsSessionDone(false);
+    if (isDeepWorkMode) setIsDeepWorkMode(false); 
   };
 
   const handleTaskCompletion = () => {
@@ -131,9 +134,20 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
         toggleTask(selectedTaskId);
         playSuccess();
         setIsDeepWorkMode(false);
+        setIsSessionDone(false);
         setSelectedTaskId('');
         setChecklist({ phoneSilent: false, notificationsOff: false, waterReady: false });
+        setTimeLeft(FOCUS_DURATION);
+        setMode('focus');
     }
+  };
+  
+  const handleContinueBreak = () => {
+    playClick();
+    setIsSessionDone(false);
+    setMode('break');
+    setTimeLeft(BREAK_DURATION);
+    setIsActive(true); // Auto-start the break
   };
 
   const allChecked = Object.values(checklist).every(Boolean);
@@ -177,9 +191,13 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             mode={mode}
             timeLeft={timeLeft}
             isActive={isActive}
+            isSessionDone={isSessionDone}
             onToggle={toggleTimer}
             onReset={resetTimer}
+            onCompleteSession={handleTaskCompletion}
+            onContinueSession={handleContinueBreak}
             selectedTaskTitle={selectedTask?.title}
+            selectedTaskBlocks={selectedTask?.blocks || 1}
             language={lang}
         />
       );
@@ -310,7 +328,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
 
           <button
             disabled={!allChecked || !selectedTaskId}
-            onClick={() => { setIsDeepWorkMode(true); playSuccess(); setIsActive(true); }}
+            onClick={() => { setIsDeepWorkMode(true); playSuccess(); setIsActive(true); setMode('focus'); setTimeLeft(FOCUS_DURATION); }}
             className={`w-full py-5 text-xs font-bold uppercase tracking-[0.2em] transition-all border flex items-center justify-center gap-3 ${
               allChecked && selectedTaskId
                 ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700 shadow-md hover:shadow-lg transform active:scale-95' 

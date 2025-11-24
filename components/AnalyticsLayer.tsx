@@ -10,11 +10,14 @@ interface AnalyticsLayerProps {
   state: AppState;
 }
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
   const navigate = useNavigate();
   const lang = state.settings.language;
+
+  // Localized days for charts
+  const localizedDays = useMemo(() => DAY_KEYS.map(key => t(`day_${key.toLowerCase()}`, lang)), [lang]);
 
   // 1. Task Statistics
   const taskStats = useMemo(() => {
@@ -36,11 +39,11 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
 
   // 2. Schedule Stats & Line Chart Data
   const scheduleData = useMemo(() => {
-    const idealHours = DAYS.map(day => {
+    const idealHours = DAY_KEYS.map(day => {
       return Object.keys(state.weeklySchedule.ideal).filter(k => k.startsWith(`${day}-`)).length;
     });
 
-    const currentHours = DAYS.map(day => {
+    const currentHours = DAY_KEYS.map(day => {
        return Object.keys(state.weeklySchedule.current).filter(k => k.startsWith(`${day}-`)).length;
     });
 
@@ -146,7 +149,7 @@ export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
                 <Zap className="text-stone-200" size={24} />
             </div>
             <div className="h-48 w-full">
-                <LineChart dataIdeal={scheduleData.idealHours} dataCurrent={scheduleData.currentHours} days={DAYS} />
+                <LineChart dataIdeal={scheduleData.idealHours} dataCurrent={scheduleData.currentHours} days={localizedDays} />
             </div>
         </div>
 

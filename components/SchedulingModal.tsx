@@ -15,7 +15,7 @@ interface SchedulingModalProps {
 }
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const SchedulingModal: React.FC<SchedulingModalProps> = ({
   schedule,
@@ -26,8 +26,10 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
   existingSlot,
   language = 'en'
 }) => {
-  const [selectedDay, setSelectedDay] = useState(DAYS[0]);
+  const [selectedDay, setSelectedDay] = useState(DAY_KEYS[0]);
   const [selectedHour, setSelectedHour] = useState(9);
+
+  const getDayLabel = (key: string) => t(`day_${key.toLowerCase()}`, language);
 
   // Initialize with today or existing slot
   useEffect(() => {
@@ -37,7 +39,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
         setSelectedHour(parseInt(h));
     } else {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'short' });
-        if (DAYS.includes(today)) setSelectedDay(today);
+        if (DAY_KEYS.includes(today)) setSelectedDay(today);
     }
   }, [existingSlot]);
 
@@ -59,13 +61,13 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
               <div>
                   <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('plan_ideal_day', language)}</label>
                   <div className="grid grid-cols-7 gap-1">
-                      {DAYS.map(day => (
+                      {DAY_KEYS.map(day => (
                           <button
                               key={day}
                               onClick={() => setSelectedDay(day)}
                               className={`py-2 text-[10px] font-bold rounded-sm border transition-colors ${selectedDay === day ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400'}`}
                           >
-                              {day}
+                              {getDayLabel(day)}
                           </button>
                       ))}
                   </div>

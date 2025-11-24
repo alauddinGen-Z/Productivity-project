@@ -7,7 +7,8 @@ import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+// Keys are standard, labels will be localized
+const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 interface TimeStructurerProps {
   schedule: WeeklySchedule;
@@ -39,6 +40,8 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   const { playClick, playSoftClick, playAdd, playDelete, playWhoosh } = useSound();
 
   const currentScheduleMap = schedule[view];
+
+  const getDayLabel = (key: string) => t(`day_${key.toLowerCase()}`, language);
 
   // Helper to get translated categories
   const getCategories = () => [
@@ -134,7 +137,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     };
 
     if (applyToAllDays) {
-        DAYS.forEach(d => {
+        DAY_KEYS.forEach(d => {
             for (let i = 0; i < hoursToFill; i++) {
                 if (editingCell.hour + i <= 21) apply(d, editingCell.hour + i);
             }
@@ -184,8 +187,8 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
     if (target === 'DOWN') {
       targetHour = sourceHour + 1;
     } else if (target === 'TOMORROW') {
-      const dayIdx = DAYS.indexOf(sourceDay);
-      targetDay = dayIdx < DAYS.length - 1 ? DAYS[dayIdx + 1] : DAYS[0];
+      const dayIdx = DAY_KEYS.indexOf(sourceDay);
+      targetDay = dayIdx < DAY_KEYS.length - 1 ? DAY_KEYS[dayIdx + 1] : DAY_KEYS[0];
     }
     if (targetHour > 21) return;
     
@@ -352,14 +355,14 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
          <div className="min-w-[800px]">
             <div className="grid grid-cols-[60px_repeat(7,1fr)] bg-stone-50 border-b border-stone-200 sticky top-0 z-10">
                 <div className="p-3 text-xs font-bold text-stone-400 uppercase tracking-wider text-center border-r border-stone-200">{t('plan_time', language)}</div>
-                {DAYS.map(day => (
-                    <div key={day} className="p-3 text-xs font-bold text-stone-600 uppercase tracking-wider text-center border-r border-stone-200">{day}</div>
+                {DAY_KEYS.map(day => (
+                    <div key={day} className="p-3 text-xs font-bold text-stone-600 uppercase tracking-wider text-center border-r border-stone-200">{getDayLabel(day)}</div>
                 ))}
             </div>
             {HOURS.map(hour => (
                 <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] hover:bg-stone-50/30">
                     <div className="p-2 text-xs font-mono text-stone-400 text-center border-r border-b border-stone-200 flex items-center justify-center">{hour}:00</div>
-                    {DAYS.map(day => renderCell(day, hour))}
+                    {DAY_KEYS.map(day => renderCell(day, hour))}
                 </div>
             ))}
          </div>
@@ -393,7 +396,7 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
             <div className="px-3 py-2 border-b border-stone-100 text-[10px] text-stone-400 uppercase tracking-wider font-bold">
-                {contextMenu.day} @ {contextMenu.hour}:00
+                {getDayLabel(contextMenu.day)} @ {contextMenu.hour}:00
             </div>
             <button onClick={() => duplicateBlock(contextMenu.day, contextMenu.hour, 'DOWN')} className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-2">
                 <ArrowDown size={14} /> {t('plan_dup_down', language)}

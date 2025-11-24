@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap, Hourglass } from 'lucide-react';
+import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap, Hourglass, Lock } from 'lucide-react';
 import { WeeklySchedule, Task, TaskQuadrant, Settings } from '../types';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
@@ -32,7 +32,24 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
   const tagInputRef = useRef<HTMLInputElement>(null);
   const { playClick, playAdd } = useSound();
 
-  const todayKey = useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'short' }), []);
+  // Map app language to standard locales for Date formatting
+  const localeMap: Record<string, string> = {
+      en: 'en-US',
+      es: 'es-ES',
+      fr: 'fr-FR',
+      de: 'de-DE',
+      jp: 'ja-JP',
+      ky: 'ky-KG'
+  };
+
+  const todayKey = useMemo(() => {
+     return new Date().toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'short' });
+  }, [language]);
+
+  // English fallback for key matching if schedule keys are stored in English (Mon, Tue, etc)
+  const scheduleDayKey = useMemo(() => {
+     return new Date().toLocaleDateString('en-US', { weekday: 'short' });
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,49 +65,53 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
   }, []);
 
   // Filter slots based on duration selected
+  // LOGIC CHANGE: Only allow selection if a block EXISTS (e.g. Deep Work). Disable if Free.
   const availableSlots = useMemo(() => {
       const hours = Array.from({ length: 16 }, (_, i) => i + 6);
       const slots = [];
       for (const h of hours) {
-          const mainKey = `${todayKey}-${h}`;
-          const halfKey = `${todayKey}-${h}-30`;
+          const mainKey = `${scheduleDayKey}-${h}`;
+          const halfKey = `${scheduleDayKey}-${h}-30`;
           
           const mainBlock = schedule.ideal[mainKey];
           const halfBlock = schedule.ideal[halfKey];
 
           if (duration === 60) {
-              const isBlocked = !!mainBlock || !!halfBlock;
+              const hasBlock = !!mainBlock || !!halfBlock;
               slots.push({
                   key: mainKey,
                   hour: h,
                   displayTime: `${h}:00`,
-                  label: isBlocked ? (mainBlock?.label || halfBlock?.label || 'Busy') : 'Available',
+                  label: hasBlock ? (mainBlock?.label || halfBlock?.label) : t('status_available', language),
                   category: mainBlock?.category || halfBlock?.category,
-                  isBusy: isBlocked
+                  isSelectable: hasBlock // Can only schedule if a block exists
               });
           } else {
+              // 30m slots
               const mainIsFull = mainBlock && (mainBlock.duration === 60 || mainBlock.duration === undefined);
+              
               slots.push({
                   key: mainKey,
                   hour: h,
                   displayTime: `${h}:00`,
-                  label: mainBlock ? mainBlock.label : 'Available',
+                  label: mainBlock ? mainBlock.label : t('status_available', language),
                   category: mainBlock?.category,
-                  isBusy: !!mainBlock
+                  isSelectable: !!mainBlock // Only selectable if block exists
               });
-              const slot2Blocked = !!halfBlock || !!mainIsFull;
+              
+              const slot2HasBlock = !!halfBlock || !!mainIsFull;
               slots.push({
                   key: halfKey,
                   hour: h,
                   displayTime: `${h}:30`,
-                  label: slot2Blocked ? (halfBlock?.label || mainBlock?.label || 'Busy') : 'Available',
+                  label: slot2HasBlock ? (halfBlock?.label || mainBlock?.label) : t('status_available', language),
                   category: halfBlock?.category || (mainIsFull ? mainBlock?.category : undefined),
-                  isBusy: slot2Blocked
+                  isSelectable: slot2HasBlock // Only selectable if block exists
               });
           }
       }
       return slots;
-  }, [schedule.ideal, todayKey, duration]);
+  }, [schedule.ideal, scheduleDayKey, duration, language]);
 
   const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -210,7 +231,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                         {showTagSuggestions && (
                             <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-stone-200 shadow-xl rounded-sm z-50 max-h-40 overflow-y-auto custom-scrollbar flex flex-col">
                                 <div className="px-3 py-2 text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-stone-50 border-b border-stone-100 sticky top-0">
-                                    Suggestions
+                                    {t('task_suggestions', language)}
                                 </div>
                                 {tagSuggestions.map((tag, index) => (
                                     <button 
@@ -225,7 +246,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                                            <Tag size={10} className={index === activeTagIndex ? 'text-amber-500' : 'text-stone-300'} />
                                            #{tag}
                                         </span>
-                                        {index === activeTagIndex && <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Enter</span>}
+                                        {index === activeTagIndex && <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">{t('task_enter', language)}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -301,11 +322,11 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                         {isTimeDropdownOpen && (
                             <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-stone-200 shadow-xl rounded-sm z-50 animate-fade-in max-h-60 overflow-y-auto custom-scrollbar">
                                 <div className="p-2 border-b border-stone-100 text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-stone-50 sticky top-0">
-                                    {todayKey}'s {duration}m Slots
+                                    {todayKey} {duration}m {t('slots_header', language)}
                                 </div>
                                 {availableSlots.length === 0 ? (
                                     <div className="p-4 text-center text-xs text-stone-400 italic">
-                                        No slots available for {duration}m.
+                                        No slots available.
                                     </div>
                                 ) : (
                                     availableSlots.map(s => (
@@ -313,24 +334,32 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                                             key={s.key}
                                             type="button"
                                             onClick={() => {
-                                                if (s.isBusy) return;
+                                                if (!s.isSelectable) return;
                                                 setSlot({ key: s.key, label: s.label, hour: s.hour });
                                                 setIsTimeDropdownOpen(false);
                                                 playClick();
                                             }}
-                                            disabled={s.isBusy}
+                                            disabled={!s.isSelectable}
                                             className={`w-full text-left px-3 py-2 border-b border-stone-50 flex items-center justify-between group ${
-                                                s.isBusy ? 'bg-stone-50 opacity-50 cursor-not-allowed' : 'hover:bg-amber-50 cursor-pointer'
+                                                !s.isSelectable 
+                                                    ? 'bg-stone-50 opacity-50 cursor-not-allowed text-stone-300' 
+                                                    : 'hover:bg-amber-50 cursor-pointer bg-white'
                                             }`}
                                         >
                                             <div className="flex flex-col">
-                                                <span className="text-xs font-mono font-bold text-stone-600">{s.displayTime}</span>
-                                                <span className="text-[10px] text-stone-400 truncate max-w-[150px]">{s.label}</span>
+                                                <span className={`text-xs font-mono font-bold ${!s.isSelectable ? 'text-stone-300' : 'text-stone-600'}`}>
+                                                  {s.displayTime}
+                                                </span>
+                                                <span className={`text-[10px] truncate max-w-[150px] ${!s.isSelectable ? 'text-stone-300' : 'text-stone-500'}`}>
+                                                  {s.isSelectable ? s.label : "Free (Unplanned)"}
+                                                </span>
                                             </div>
-                                            {s.isBusy ? (
-                                                <span className="text-[9px] uppercase font-bold text-red-300">Busy</span>
+                                            {!s.isSelectable ? (
+                                                <Lock size={12} className="text-stone-300" />
                                             ) : (
-                                                <Zap size={12} className="text-stone-300 group-hover:text-amber-400" />
+                                                <div className="flex items-center gap-1">
+                                                   <span className="text-[9px] uppercase font-bold text-emerald-500 bg-emerald-50 px-1 rounded">Open</span>
+                                                </div>
                                             )}
                                         </button>
                                     ))
