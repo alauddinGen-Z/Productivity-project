@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Task, TaskQuadrant, WeeklySchedule, TimeBlock, Settings } from '../types';
-import { Box, CornerDownRight } from 'lucide-react';
+import { Box, CornerDownRight, Edit2, Check } from 'lucide-react';
 import { SchedulingModal } from './SchedulingModal';
 import { useSound } from '../hooks/useSound';
 import { generateId } from '../utils/helpers';
@@ -23,17 +23,116 @@ interface TaskMatrixProps {
 
 export type SortOption = 'NEWEST' | 'OLDEST' | 'AZ' | 'ZA' | 'PRIORITY' | 'BLOCKS_DESC' | 'BLOCKS_ASC';
 
+// --- Internal Component for Ivy Lee Item to handle Animation & Editing ---
+const IvyLeeTaskItem: React.FC<{
+  task: Task;
+  index: number;
+  toggleTask: (id: string) => void;
+  updateTitle: (id: string, title: string) => void;
+  language: Settings['language'];
+  playSuccess: () => void;
+  playClick: () => void;
+}> = ({ task, index, toggleTask, updateTitle, language, playSuccess, playClick }) => {
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [localTitle, setLocalTitle] = useState(task.title);
+
+  const handleComplete = () => {
+    playSuccess();
+    setIsCompleting(true);
+    setTimeout(() => {
+      toggleTask(task.id);
+      setIsCompleting(false);
+    }, 700);
+  };
+
+  const saveTitle = () => {
+    if (localTitle.trim()) {
+      updateTitle(task.id, localTitle.trim());
+    }
+    setIsEditing(false);
+  };
+
+  return (
+    <div 
+      className={`relative p-6 border-b transition-all duration-700 ease-in-out ${
+        index === 0 ? 'border-stone-800 bg-[#FAF9F6] shadow-sm -mx-4 px-10 z-10' : 'border-stone-100 text-stone-500'
+      } ${isCompleting ? 'opacity-0 translate-y-8 scale-95 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+    >
+      <div className="flex items-center gap-6">
+        <div className={`font-serif font-bold text-2xl w-8 text-center flex-shrink-0 ${index === 0 ? 'text-stone-800' : 'text-stone-300'}`}>
+          {index + 1}.
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 group">
+             {isEditing ? (
+                 <div className="flex items-center gap-2 flex-1">
+                    <input 
+                      value={localTitle}
+                      onChange={(e) => setLocalTitle(e.target.value)}
+                      className="flex-1 font-serif text-lg border-b border-stone-300 focus:border-stone-800 outline-none bg-transparent"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
+                    />
+                    <button onClick={saveTitle} className="p-1 bg-stone-800 text-white rounded-sm"><Check size={12} /></button>
+                 </div>
+             ) : (
+                <>
+                  <span className={`font-serif text-lg truncate ${index === 0 ? 'text-stone-800' : ''}`}>{task.title}</span>
+                  <button 
+                    onClick={() => { setIsEditing(true); playClick(); }}
+                    className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-stone-600 transition-opacity p-1"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                </>
+             )}
+          </div>
+          
+          <div className="flex flex-wrap gap-2 mt-1">
+             <span className="text-[9px] bg-stone-100 text-stone-400 px-1 rounded flex items-center gap-1">
+               <Box size={8} /> {task.blocks || 1}
+             </span>
+             {task.duration === 30 && (
+                 <span className="text-[9px] bg-amber-50 text-amber-600 px-1 rounded flex items-center gap-1">
+                   {t('task_30m', language)}
+                 </span>
+             )}
+            {task.tags?.map((tag, i) => (
+               <span key={i} className="text-[9px] bg-stone-100 text-stone-400 px-1 rounded">#{tag}</span>
+            ))}
+          </div>
+          {task.purpose && (
+            <div className="text-xs font-serif italic text-amber-600/70 mt-1 flex items-center gap-1">
+              <CornerDownRight size={10} />
+              {task.purpose}
+            </div>
+          )}
+        </div>
+        {index === 0 && (
+          <button 
+            onClick={handleComplete}
+            className="text-xs uppercase tracking-widest border border-stone-800 px-4 py-2 hover:bg-stone-800 hover:text-white transition-all active:scale-95 flex-shrink-0"
+          >
+            {t('matrix_complete_btn', language)}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, schedule, updateSchedule, toggleTask, language = 'en' }) => {
   const [activeView, setActiveView] = useState<'matrix' | 'ivylee'>('matrix');
   const [sortBy, setSortBy] = useState<SortOption>('PRIORITY');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [schedulingTaskId, setSchedulingTaskId] = useState<string | null>(null);
-  const { playClick, playAdd } = useSound();
+  const { playClick, playAdd, playSuccess } = useSound();
   
   // --- Handlers ---
   const handleAddTask = (newTaskPart: Partial<Task>, slot: {key: string, label: string, hour: number} | null) => {
     playAdd();
-    // Use proper UUID for database compatibility
     const tempId = generateId();
     const newTask: Task = {
       id: tempId,
@@ -52,10 +151,8 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     
     if (slot) {
         const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
-        // The slot key from Form might be "Day-Hour" or "Day-Hour-30"
-        
         newIdeal[slot.key] = {
-            category: 'DEEP', // Default category for new tasks
+            category: 'DEEP',
             label: newTask.title,
             taskId: tempId,
             duration: newTask.duration
@@ -70,7 +167,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     let changed = false;
     Object.keys(newIdeal).forEach(key => {
         if (newIdeal[key].taskId === id) {
-            delete newIdeal[key]; // Actually remove the block
+            delete newIdeal[key];
             changed = true;
         }
     });
@@ -137,7 +234,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       const key = `${day}-${hour}`;
       const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
       
-      // Clear old slot for this task if exists
       Object.keys(newIdeal).forEach(k => {
           if (newIdeal[k].taskId === schedulingTaskId) {
              delete newIdeal[k];
@@ -171,7 +267,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
   const getTaskSlot = (taskId: string) => {
       const entry = Object.entries(schedule.ideal).find(([_, block]) => block.taskId === taskId);
       if (!entry) return null;
-      // Format key to user readable: "Mon-9" or "Mon-9-30"
       const [d, h, m] = entry[0].split('-');
       return m ? `${d}-${h}:30` : `${d}-${h}`;
   };
@@ -199,11 +294,8 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
           case 'AZ': return a.title.localeCompare(b.title);
           case 'ZA': return b.title.localeCompare(a.title);
           case 'PRIORITY':
-            // 1. Frogs first
             if (a.isFrog !== b.isFrog) return a.isFrog ? -1 : 1;
-            // 2. Then higher blocks (effort)
             if (a.blocks !== b.blocks) return b.blocks - a.blocks;
-            // 3. Then newest
             return b.createdAt - a.createdAt;
           case 'BLOCKS_DESC': 
             if (a.blocks !== b.blocks) return b.blocks - a.blocks;
@@ -355,7 +447,6 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
         </div>
       ) : (
         <div className="bg-white p-12 rounded-sm shadow-sm border border-stone-200 max-w-2xl mx-auto relative animate-fade-in">
-          {/* Ivy Lee View Implementation */}
           <div className="absolute top-0 left-0 w-full h-2 bg-stone-800"></div>
           <div className="text-center mb-12">
             <h2 className="text-3xl font-serif font-bold text-stone-800">{t('matrix_view_list', language)}</h2>
@@ -367,48 +458,16 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
               <div className="text-center py-12 text-stone-400 font-serif italic">{t('matrix_empty', language)}</div>
             ) : (
               ivyLeeTasks.map((task, index) => (
-                <div 
-                  key={task.id} 
-                  className={`relative p-6 border-b transition-all ${
-                    index === 0 ? 'border-stone-800 bg-[#FAF9F6] shadow-sm -mx-4 px-10' : 'border-stone-100 text-stone-500'
-                  }`}
-                >
-                  <div className="flex items-center gap-6">
-                    <div className={`font-serif font-bold text-2xl w-8 text-center ${index === 0 ? 'text-stone-800' : 'text-stone-300'}`}>
-                      {index + 1}.
-                    </div>
-                    <div className="flex-1">
-                      <span className={`font-serif text-lg ${index === 0 ? 'text-stone-800' : ''}`}>{task.title}</span>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                         <span className="text-[9px] bg-stone-100 text-stone-400 px-1 rounded flex items-center gap-1">
-                           <Box size={8} /> {task.blocks || 1}
-                         </span>
-                         {task.duration === 30 && (
-                             <span className="text-[9px] bg-amber-50 text-amber-600 px-1 rounded flex items-center gap-1">
-                               {t('task_30m', language)}
-                             </span>
-                         )}
-                        {task.tags?.map((tag, i) => (
-                           <span key={i} className="text-[9px] bg-stone-100 text-stone-400 px-1 rounded">#{tag}</span>
-                        ))}
-                      </div>
-                      {task.purpose && (
-                        <div className="text-xs font-serif italic text-amber-600/70 mt-1 flex items-center gap-1">
-                          <CornerDownRight size={10} />
-                          {task.purpose}
-                        </div>
-                      )}
-                    </div>
-                    {index === 0 && (
-                      <button 
-                        onClick={() => toggleTask(task.id)}
-                        className="text-xs uppercase tracking-widest border border-stone-800 px-4 py-2 hover:bg-stone-800 hover:text-white transition-colors"
-                      >
-                        {t('matrix_complete_btn', language)}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <IvyLeeTaskItem
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  toggleTask={toggleTask}
+                  updateTitle={updateTitle}
+                  language={language}
+                  playSuccess={playSuccess}
+                  playClick={playClick}
+                />
               ))
             )}
           </div>
