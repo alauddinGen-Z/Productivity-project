@@ -1,7 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, Pause, Volume2, X, CloudRain, TreePine, Flame, Waves, Moon, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { useAmbientSound, SoundType } from '../hooks/useAmbientSound';
+import { t } from '../utils/translations';
 
 interface FocusTimerProps {
   mode: 'focus' | 'break';
@@ -20,9 +22,13 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   onReset,
   selectedTaskTitle
 }) => {
-  const { selectedSound, setSelectedSound, volume, setVolume } = useAmbientSound();
+  const { selectedSound, setSelectedSound, volume, setVolume, AudioElement } = useAmbientSound();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // Get language from local storage fallback as we are in a portal and might not have access to state prop easily without threading
+  const settings = JSON.parse(localStorage.getItem('intentional_settings') || '{}');
+  const lang = settings.language || 'en';
 
   useEffect(() => {
     setMounted(true);
@@ -57,12 +63,12 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const dashOffset = circumference * (1 - progress);
 
   const soundOptions: { type: SoundType, icon: any, label: string }[] = [
-    { type: 'none', icon: VolumeX, label: 'Off' },
-    { type: 'rain', icon: CloudRain, label: 'Rain' },
-    { type: 'forest', icon: TreePine, label: 'Forest' },
-    { type: 'fire', icon: Flame, label: 'Fire' },
-    { type: 'ocean', icon: Waves, label: 'Ocean' },
-    { type: 'night', icon: Moon, label: 'Night' },
+    { type: 'none', icon: VolumeX, label: t('focus_sound_off', lang) },
+    { type: 'rain', icon: CloudRain, label: t('focus_sound_rain', lang) },
+    { type: 'forest', icon: TreePine, label: t('focus_sound_forest', lang) },
+    { type: 'fire', icon: Flame, label: t('focus_sound_fire', lang) },
+    { type: 'ocean', icon: Waves, label: t('focus_sound_ocean', lang) },
+    { type: 'night', icon: Moon, label: t('focus_sound_night', lang) },
   ];
 
   if (!mounted) return null;
@@ -70,12 +76,15 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-[#FAF9F6] flex flex-col items-center justify-between p-6 animate-fade-in overflow-hidden text-stone-800">
       
+      {/* Ensure Audio Element is in DOM */}
+      <AudioElement />
+
       {/* 1. Header Area */}
       <div className="w-full max-w-lg flex justify-between items-start shrink-0 h-16">
          <div className="flex-1 mr-4">
             <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-stone-300'}`}></span>
-                {mode === 'focus' ? 'Deep Work' : 'Rest Phase'}
+                {mode === 'focus' ? t('focus_deep', lang) : t('focus_rest', lang)}
             </div>
             <h2 className="text-lg font-serif font-bold text-stone-800 leading-tight truncate">
                 {selectedTaskTitle || "Focus Session"}
@@ -120,9 +129,9 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                     }`}
                 >
                     {isActive ? (
-                        <><Pause size={12} /> Pause</>
+                        <><Pause size={12} /> {t('focus_pause', lang)}</>
                     ) : (
-                        <><Play size={12} /> Resume</>
+                        <><Play size={12} /> {t('focus_resume', lang)}</>
                     )}
                 </button>
             </div>

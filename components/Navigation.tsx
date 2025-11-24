@@ -19,6 +19,8 @@ import {
   Settings
 } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
+import { t } from '../utils/translations';
+import { Settings as AppSettings } from '../types';
 
 interface NavigationProps {
   mobileOpen: boolean;
@@ -28,6 +30,7 @@ interface NavigationProps {
   userName: string;
   blockBalance: number;
   loaders: Record<string, () => Promise<any>>;
+  language?: AppSettings['language'];
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ 
@@ -37,20 +40,21 @@ export const Navigation: React.FC<NavigationProps> = ({
   onExport, 
   userName, 
   blockBalance,
-  loaders 
+  loaders,
+  language = 'en'
 }) => {
   const location = useLocation();
   const { playClick, playSoftClick } = useSound();
   
   const navItems = [
-    { path: '/', label: 'Purpose & Dashboard', icon: LayoutDashboard, loaderKey: 'dashboard' },
-    { path: '/tasks', label: 'Tasks & Process', icon: ListTodo, loaderKey: 'tasks' },
-    { path: '/plan', label: 'Time Structure', icon: CalendarClock, loaderKey: 'plan' },
-    { path: '/focus', label: 'Focus Zone', icon: Zap, loaderKey: 'focus' },
-    { path: '/rewards', label: 'Reward Shop', icon: ShoppingBag, loaderKey: 'rewards' },
-    { path: '/psych', label: 'Psychology & Learn', icon: BrainCircuit, loaderKey: 'psych' },
-    { path: '/graphics', label: 'Progress & Insights', icon: PieChart, loaderKey: 'analytics' },
-    { path: '/review', label: 'Weekly Review', icon: BarChart3, loaderKey: 'review' },
+    { path: '/', label: t('nav_dashboard', language), icon: LayoutDashboard, loaderKey: 'dashboard' },
+    { path: '/tasks', label: t('nav_tasks', language), icon: ListTodo, loaderKey: 'tasks' },
+    { path: '/plan', label: t('nav_plan', language), icon: CalendarClock, loaderKey: 'plan' },
+    { path: '/focus', label: t('nav_focus', language), icon: Zap, loaderKey: 'focus' },
+    { path: '/rewards', label: t('nav_rewards', language), icon: ShoppingBag, loaderKey: 'rewards' },
+    { path: '/psych', label: t('nav_psych', language), icon: BrainCircuit, loaderKey: 'psych' },
+    { path: '/graphics', label: t('nav_stats', language), icon: PieChart, loaderKey: 'analytics' },
+    { path: '/review', label: t('nav_review', language), icon: BarChart3, loaderKey: 'review' },
   ];
 
   return (
@@ -122,21 +126,21 @@ export const Navigation: React.FC<NavigationProps> = ({
             className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-stone-100 transition-colors text-sm group"
         >
             <Settings size={16} className="group-hover:rotate-90 transition-transform duration-500" />
-            <span>Settings</span>
+            <span>{t('nav_settings', language)}</span>
         </Link>
         <button 
           onClick={() => { playClick(); onExport(); }}
           className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-stone-100 transition-colors text-sm"
         >
           <Download size={16} />
-          <span>Backup Data</span>
+          <span>{t('nav_backup', language)}</span>
         </button>
         <button 
           onClick={() => { playClick(); onLogout(); }}
           className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-red-400 transition-colors text-sm"
         >
           <LogOut size={16} />
-          <span>Switch Profile</span>
+          <span>{t('nav_switch', language)}</span>
         </button>
       </div>
     </div>
