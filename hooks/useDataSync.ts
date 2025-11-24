@@ -64,7 +64,8 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
             tasks: tasks.map((t: any) => ({
               ...t,
               isFrog: t.is_frog,
-              createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
+              // Handle both ISO strings and timestamps gracefully
+              createdAt: typeof t.created_at === 'string' ? new Date(t.created_at).getTime() : (t.created_at || Date.now()),
               tags: Array.isArray(t.tags) ? t.tags : [],
               blocks: t.blocks || 1,
               subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks) : (t.subtasks || [])
@@ -168,6 +169,7 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
                         purpose: t.purpose || '',
                         tags: t.tags || [],
                         blocks: t.blocks || 1,
+                        // Ensure this is ISO string for TIMESTAMPTZ column
                         created_at: new Date(t.createdAt).toISOString(),
                         subtasks: t.subtasks || [] 
                     }));
@@ -186,6 +188,9 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
                 }
             } catch (e: any) {
                 console.error("Sync Error (Tasks):", e.message);
+                // If invalid input syntax for type bigint, the DB schema is wrong.
+                if (e.message?.includes('bigint')) setErrorMessage("SQL Error: Run Migration");
+                else setErrorMessage(e.message);
                 hasError = true;
             }
 
@@ -197,7 +202,7 @@ export const useDataSync = (userSession: { email: string; name: string } | null,
                         email,
                         question: f.question,
                         answer: f.answer,
-                        next_review: f.nextReview,
+                        next_review: f.nextReview, // BIGINT
                         interval: f.interval
                     }));
                     const { error } = await supabase.from('flashcards').upsert(cardsToUpsert);

@@ -3,14 +3,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 export type SoundType = 'none' | 'rain' | 'forest' | 'fire' | 'ocean' | 'night';
 
-// Using consistent MP3 sources for wider browser compatibility (Safari/iOS)
+// Switched to reliable MP3 sources from Mixkit for better browser support (Safari/iOS) and removed CORS restrictions
 const SOUND_URLS: Record<SoundType, string> = {
   none: '',
-  rain: 'https://www.soundjay.com/nature/rain-01.mp3', 
-  forest: 'https://www.soundjay.com/nature/forest-01.mp3',
-  fire: 'https://www.soundjay.com/nature/fire-1.mp3',
-  ocean: 'https://www.soundjay.com/nature/ocean-wave-1.mp3',
-  night: 'https://www.soundjay.com/nature/crickets-1.mp3'
+  rain: 'https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3', 
+  forest: 'https://assets.mixkit.co/active_storage/sfx/2505/2505-preview.mp3',
+  fire: 'https://assets.mixkit.co/active_storage/sfx/2506/2506-preview.mp3',
+  ocean: 'https://assets.mixkit.co/active_storage/sfx/1194/1194-preview.mp3',
+  night: 'https://assets.mixkit.co/active_storage/sfx/228/228-preview.mp3'
 };
 
 export const useAmbientSound = () => {
@@ -23,10 +23,10 @@ export const useAmbientSound = () => {
     if (audioRef.current) {
       if (selectedSound === 'none') {
         audioRef.current.pause();
-        audioRef.current.src = "";
+        // Don't clear src immediately to avoid abrupt cuts, just pause
       } else {
-        // Only reload if source actually changed to avoid stutter
         const newSrc = SOUND_URLS[selectedSound];
+        // Only reload if source actually changed
         if (audioRef.current.src !== newSrc) {
             audioRef.current.src = newSrc;
             audioRef.current.load();
@@ -35,7 +35,7 @@ export const useAmbientSound = () => {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           playPromise.catch(error => {
-            console.warn("Audio play blocked (interaction required):", error);
+            console.warn("Audio play blocked. User interaction required first.", error);
           });
         }
       }
@@ -49,14 +49,15 @@ export const useAmbientSound = () => {
     }
   }, [volume]);
 
-  // Return a render-able audio element and controls
+  // Return a render-able audio element
+  // Removed crossOrigin="anonymous" to allow opaque responses (fixes CORS blocks on external MP3s)
   const AudioElement = useCallback(() => {
     return React.createElement('audio', {
       ref: audioRef,
       loop: true,
       preload: 'auto',
       style: { display: 'none' },
-      crossOrigin: 'anonymous'
+      onError: (e: any) => console.error("Audio playback error:", e)
     });
   }, []);
 
