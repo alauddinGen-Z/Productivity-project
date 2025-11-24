@@ -75,7 +75,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
         {state.currentNiyyah && (
           <div className="mt-6 flex items-center gap-3 text-amber-400/80 text-sm font-serif italic">
             <Heart size={14} className="fill-amber-400/80" />
-            <span>Intention set.</span>
+            <span>{t('dash_intent_saved', lang)}</span>
           </div>
         )}
       </div>
@@ -102,7 +102,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
               value={state.celebrationVision}
               onChange={(e) => updateState({ celebrationVision: e.target.value })}
               className="w-full flex-1 p-4 bg-[#FAF9F6] rounded-sm border border-stone-200 focus:border-stone-400 outline-none font-serif text-stone-700 leading-7 resize-none"
-              placeholder="Describe exactly what you are celebrating one year from now..."
+              placeholder={t('dash_vision_placeholder', lang)}
             />
           ) : (
             <div className="w-full flex-1 p-6 bg-[#FAF9F6] rounded-sm border border-stone-100 overflow-y-auto font-serif text-stone-700 leading-7 italic relative">
@@ -112,7 +112,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
                 {state.celebrationVision ? (
                   state.celebrationVision
                 ) : (
-                  <span className="text-stone-400">"Write the vision and make it plain..."</span>
+                  <span className="text-stone-400">{t('dash_vision_empty', lang)}</span>
                 )}
               </div>
             </div>
@@ -135,7 +135,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
             value={state.theThing}
             onChange={(e) => updateState({ theThing: e.target.value })}
             onFocus={() => playSoftClick()}
-            placeholder="What would you do even if you weren't paid?"
+            placeholder={t('dash_thing_placeholder', lang)}
             className="w-full h-32 p-4 bg-[#FAF9F6] rounded-sm border-l-2 border-amber-200 focus:border-amber-400 outline-none resize-none text-stone-700 font-serif leading-relaxed text-sm"
           />
         </div>
@@ -155,14 +155,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
             {(['work', 'health', 'relationship'] as const).map((cat) => (
               <div key={cat} className="flex items-center gap-4">
                  <div className="w-24 text-[10px] font-bold text-stone-400 uppercase tracking-widest text-right">
-                    {cat}
+                    {t(`quest_${cat}`, lang)}
                  </div>
                  <div className="flex-1 relative group">
                     <input
                       type="text"
                       value={state.dailyQuests[cat].title}
                       onChange={(e) => updateQuestTitle(cat, e.target.value)}
-                      placeholder="..."
+                      placeholder={t('dash_quests_placeholder', lang)}
                       className={`w-full bg-[#FAF9F6] px-3 py-2 border-b border-stone-200 focus:border-emerald-500 outline-none font-serif text-sm transition-colors ${state.dailyQuests[cat].completed ? 'text-stone-400 line-through' : 'text-stone-800'}`}
                     />
                     <button

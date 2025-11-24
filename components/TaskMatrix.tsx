@@ -37,7 +37,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
     const tempId = generateId();
     const newTask: Task = {
       id: tempId,
-      title: newTaskPart.title || 'Untitled',
+      title: newTaskPart.title || t('task_untitled', language),
       completed: false,
       quadrant: TaskQuadrant.SCHEDULE, 
       isFrog: false,
@@ -279,6 +279,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
+             language={language}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.SCHEDULE}
@@ -299,6 +300,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
+             language={language}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.DELEGATE}
@@ -319,6 +321,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
+             language={language}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.DELETE}
@@ -339,6 +342,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
+             language={language}
           />
         </div>
       ) : (
@@ -373,7 +377,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
                          </span>
                          {task.duration === 30 && (
                              <span className="text-[9px] bg-amber-50 text-amber-600 px-1 rounded flex items-center gap-1">
-                               30m
+                               {t('task_30m', language)}
                              </span>
                          )}
                         {task.tags?.map((tag, i) => (
@@ -411,6 +415,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
             onConfirm={confirmSchedule}
             onClear={clearTaskSchedule}
             existingSlot={getTaskSlot(schedulingTaskId)}
+            language={language}
         />
       )}
     </div>

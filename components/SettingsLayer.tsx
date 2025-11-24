@@ -25,7 +25,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
   };
 
   const handleResetData = () => {
-    if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+    if (confirm(t('settings_reset_confirm', lang))) {
         playClick();
         // logic handled in parent or manual reload, strictly updateState here might not be enough if we want a hard reset
         localStorage.removeItem('intentional_current_user');
@@ -54,8 +54,8 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
             </h3>
             <div className="flex items-center justify-between">
                 <div>
-                    <div className="text-sm font-bold text-stone-700">Sound Effects</div>
-                    <p className="text-xs text-stone-400 mt-1">Feedback clicks and completion tones.</p>
+                    <div className="text-sm font-bold text-stone-700">{t('settings_sound_title', lang)}</div>
+                    <p className="text-xs text-stone-400 mt-1">{t('settings_sound_desc', lang)}</p>
                 </div>
                 <button 
                     onClick={() => updateSetting('soundEnabled', !settings.soundEnabled)}
@@ -87,7 +87,7 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
                     </button>
                 ))}
             </div>
-            <p className="text-xs text-stone-400 mt-4 italic">Note: Dark mode is experimental and may require a refresh to fully propagate.</p>
+            <p className="text-xs text-stone-400 mt-4 italic">{t('settings_theme_note', lang)}</p>
         </div>
 
         {/* Language */}

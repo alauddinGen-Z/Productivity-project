@@ -166,7 +166,8 @@ export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, update
   };
 
   const clearSchedule = () => {
-    if (confirm(`Are you sure you want to clear the entire ${view === 'ideal' ? 'Vision' : 'Reality'} schedule?`)) {
+    const title = view === 'ideal' ? t('plan_ideal', language) : t('plan_reality', language);
+    if (confirm(`Are you sure you want to clear the entire ${title} schedule?`)) {
         playDelete();
         updateSchedule({ ...schedule, [view]: {} });
     }

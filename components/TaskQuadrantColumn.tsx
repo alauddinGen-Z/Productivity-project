@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Task, TaskQuadrant } from '../types';
+import { Task, TaskQuadrant, Settings } from '../types';
 import { MatrixTaskItem } from './MatrixTaskItem';
 import { useSound } from '../hooks/useSound';
 
@@ -23,6 +23,7 @@ interface TaskQuadrantColumnProps {
   onOpenScheduler: (taskId: string) => void;
   selectedTags: string[];
   uniqueTags: string[];
+  language?: Settings['language'];
 }
 
 export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
@@ -43,7 +44,8 @@ export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
   getTaskSlot,
   onOpenScheduler,
   selectedTags,
-  uniqueTags
+  uniqueTags,
+  language = 'en'
 }) => {
   const { playWhoosh } = useSound();
 
@@ -111,6 +113,7 @@ export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
             scheduledSlot={getTaskSlot(task.id)}
             onOpenScheduler={onOpenScheduler}
             uniqueTags={uniqueTags}
+            language={language}
           />
         ))}
       </div>

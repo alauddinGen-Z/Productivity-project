@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, AlertCircle, Trash2, X } from 'lucide-react';
-import { WeeklySchedule } from '../types';
+import { WeeklySchedule, Settings } from '../types';
+import { t } from '../utils/translations';
 
 interface SchedulingModalProps {
   schedule: WeeklySchedule;
@@ -10,6 +11,7 @@ interface SchedulingModalProps {
   onConfirm: (day: string, hour: number) => void;
   onClear: () => void;
   existingSlot: string | null;
+  language?: Settings['language'];
 }
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
@@ -21,7 +23,8 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
   onClose,
   onConfirm,
   onClear,
-  existingSlot
+  existingSlot,
+  language = 'en'
 }) => {
   const [selectedDay, setSelectedDay] = useState(DAYS[0]);
   const [selectedHour, setSelectedHour] = useState(9);
@@ -44,7 +47,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
           <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-2">
                   <Calendar className="text-stone-400" size={18} />
-                  <h3 className="font-serif font-bold text-lg text-stone-800">Assign to Schedule</h3>
+                  <h3 className="font-serif font-bold text-lg text-stone-800">{t('plan_assign_title', language)}</h3>
               </div>
               <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
                   <X size={20} />
@@ -54,7 +57,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
           <div className="space-y-6">
               {/* Day Selection */}
               <div>
-                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Ideal Day</label>
+                  <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('plan_ideal_day', language)}</label>
                   <div className="grid grid-cols-7 gap-1">
                       {DAYS.map(day => (
                           <button
@@ -70,7 +73,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
 
               {/* Available Time Grid with CONTEXT */}
               <div>
-                   <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Available Time Blocks</label>
+                   <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('plan_available_blocks', language)}</label>
                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto custom-scrollbar p-1">
                        {HOURS.map(h => {
                            const isSelected = selectedHour === h;
@@ -95,7 +98,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                                       {block && <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : (block.category === 'DEEP' ? 'bg-stone-800' : 'bg-emerald-500')}`}></div>}
                                   </div>
                                   <span className={`text-xs font-serif truncate w-full ${isSelected ? 'font-bold' : (block ? 'font-medium' : 'italic text-[10px]')}`}>
-                                      {block ? block.label : 'Free / Unplanned'}
+                                      {block ? block.label : t('plan_free', language)}
                                   </span>
                                </button>
                            );
@@ -107,7 +110,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
               <div className="bg-stone-50 border border-stone-200 p-3 rounded-sm flex gap-2">
                   <AlertCircle size={14} className="text-stone-400 flex-shrink-0 mt-0.5" />
                   <p className="text-[10px] text-stone-500 font-serif leading-tight">
-                      Assigning this task to a time slot links it to your "Ideal Week" and makes it available in Focus Mode at that time.
+                      {t('plan_assign_help', language)}
                   </p>
               </div>
 
@@ -116,7 +119,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                       <button 
                           onClick={onClear}
                           className="px-4 py-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
-                          title="Clear Schedule"
+                          title={t('plan_clear_btn', language)}
                       >
                           <Trash2 size={16} />
                       </button>
@@ -125,7 +128,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                       onClick={() => onConfirm(selectedDay, selectedHour)}
                       className="flex-1 bg-stone-800 text-white py-3 font-bold text-xs uppercase tracking-widest hover:bg-stone-700 shadow-sm"
                   >
-                      Set Schedule
+                      {t('plan_set_btn', language)}
                   </button>
               </div>
           </div>

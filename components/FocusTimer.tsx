@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Play, Pause, Volume2, X, CloudRain, TreePine, Flame, Waves, Moon, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { useAmbientSound, SoundType } from '../hooks/useAmbientSound';
 import { t } from '../utils/translations';
+import { Settings } from '../types';
 
 interface FocusTimerProps {
   mode: 'focus' | 'break';
@@ -12,6 +13,7 @@ interface FocusTimerProps {
   onToggle: () => void;
   onReset: () => void;
   selectedTaskTitle: string | undefined;
+  language: Settings['language'];
 }
 
 export const FocusTimer: React.FC<FocusTimerProps> = ({ 
@@ -20,15 +22,15 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   isActive, 
   onToggle, 
   onReset,
-  selectedTaskTitle
+  selectedTaskTitle,
+  language
 }) => {
   const { selectedSound, setSelectedSound, volume, setVolume, AudioElement } = useAmbientSound();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [mounted, setMounted] = useState(false);
   
-  // Get language from local storage fallback as we are in a portal and might not have access to state prop easily without threading
-  const settings = JSON.parse(localStorage.getItem('intentional_settings') || '{}');
-  const lang = settings.language || 'en';
+  // Reading from props now
+  const lang = language;
 
   useEffect(() => {
     setMounted(true);
@@ -87,7 +89,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                 {mode === 'focus' ? t('focus_deep', lang) : t('focus_rest', lang)}
             </div>
             <h2 className="text-lg font-serif font-bold text-stone-800 leading-tight truncate">
-                {selectedTaskTitle || "Focus Session"}
+                {selectedTaskTitle || t('focus_default_title', lang)}
             </h2>
          </div>
          <div className="flex gap-2">

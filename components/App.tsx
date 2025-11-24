@@ -6,6 +6,7 @@ import { Menu, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { AppState, INITIAL_STATE, Task, WeeklySchedule, RewardItem } from '../types';
 import { IntroAnimation } from './IntroAnimation';
 import { useDataSync } from '../hooks/useDataSync';
+import { t } from '../utils/translations';
 
 // Extracted Components
 import { LandingPage } from './components/LandingPage';
@@ -109,6 +110,7 @@ const App: React.FC = () => {
   const { syncedState, isLoginLoading, saveStatus, errorMessage } = useDataSync(userSession, state);
   
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem(INTRO_SEEN_KEY));
+  const lang = state.settings.language;
 
   // Sync Logic
   useEffect(() => {
@@ -227,7 +229,7 @@ const App: React.FC = () => {
           userName={userSession.name}
           blockBalance={state.blockBalance}
           loaders={loaders}
-          language={state.settings.language}
+          language={lang}
         />
 
         <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
@@ -242,18 +244,18 @@ const App: React.FC = () => {
             {saveStatus === 'saved' ? (
               <>
                 <CheckCircle2 size={14} className="text-emerald-600" />
-                <span className="text-emerald-700">Synced</span>
+                <span className="text-emerald-700">{t('status_synced', lang)}</span>
               </>
             ) : saveStatus === 'saving' ? (
               <>
                 <Loader2 size={14} className="animate-spin text-amber-500" />
-                <span className="text-stone-500">Syncing...</span>
+                <span className="text-stone-500">{t('status_syncing', lang)}</span>
               </>
             ) : (
                <>
                 <AlertCircle size={14} className="text-red-500" />
                 <span className="text-red-600" title={errorMessage || "Sync Error"}>
-                  {errorMessage?.includes("column") ? "DB Schema Error" : "Sync Error"}
+                  {errorMessage?.includes("column") ? t('status_error', lang) : t('status_error', lang)}
                 </span>
               </>
             )}
@@ -263,7 +265,7 @@ const App: React.FC = () => {
              <div className="flex-1 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                   <Loader2 className="animate-spin text-stone-400" size={32} />
-                  <p className="text-stone-400 font-serif italic">Loading your journal...</p>
+                  <p className="text-stone-400 font-serif italic">{t('loading_journal', lang)}</p>
                 </div>
              </div>
           ) : (

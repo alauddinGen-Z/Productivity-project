@@ -64,7 +64,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           <Feather size={20} />
           <div>
             <span className="font-bold text-lg tracking-wide block leading-none">INTENTIONAL</span>
-            <span className="text-[10px] text-stone-500 uppercase tracking-widest">System</span>
+            <span className="text-[10px] text-stone-500 uppercase tracking-widest">{t('nav_system_sub', language)}</span>
           </div>
         </div>
         <button onClick={() => { setMobileOpen(false); playClick(); }} className="lg:hidden text-stone-400">
@@ -79,7 +79,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <User size={14} />
              </div>
              <div className="overflow-hidden">
-                <p className="text-xs text-stone-500 uppercase tracking-wider">Traveler</p>
+                <p className="text-xs text-stone-500 uppercase tracking-wider">{t('nav_traveler_label', language)}</p>
                 <p className="text-sm text-stone-200 font-medium truncate max-w-[80px]">{userName}</p>
              </div>
            </div>

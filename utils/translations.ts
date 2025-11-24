@@ -17,7 +17,16 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     nav_settings: "Settings",
     nav_backup: "Backup Data",
     nav_switch: "Switch Profile",
+    nav_traveler_label: "Traveler",
+    nav_system_sub: "System",
     
+    // Status
+    loading_journal: "Loading your journal...",
+    status_synced: "Synced",
+    status_syncing: "Syncing...",
+    status_offline: "Offline",
+    status_error: "Sync Error",
+
     // Dashboard
     dash_intent_title: "Intentionality First",
     dash_intent_desc: "Before you begin, anchor your heart. What is the ultimate meaning (Niyyah) behind your actions today?",
@@ -34,6 +43,9 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     dash_quests_title: "Daily Side Quests",
     dash_quests_sub: "Happiness of Pursuit",
     dash_quests_placeholder: "...",
+    quest_work: "Work",
+    quest_health: "Health",
+    quest_relationship: "Relation",
 
     // Matrix
     matrix_do: "Do First",
@@ -59,6 +71,22 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     matrix_save_changes: "Save Changes",
     matrix_scheduled: "Scheduled",
     
+    // Task Item
+    task_untitled: "Untitled",
+    task_completed_msg: "Task Completed!",
+    task_frog_tooltip_on: "Unmark Priority",
+    task_frog_tooltip_off: "Eat The Frog",
+    task_schedule_tooltip: "Schedule Task",
+    task_edit_tooltip: "Edit Details",
+    task_delete_tooltip: "Delete",
+    task_purpose_placeholder: "The 'Why' (Niyyah)...",
+    task_manage_subtasks: "Manage Subtasks",
+    task_add_step_placeholder: "Add step...",
+    task_save_changes: "Save Changes",
+    task_suggestions: "Suggestions",
+    task_enter: "Enter",
+    task_30m: "30m",
+
     // Sorting & Filtering
     sort_label: "Sort",
     sort_priority: "Priority (Frogs First)",
@@ -76,6 +104,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     // Focus
     focus_deep: "Deep Work",
     focus_rest: "Rest Phase",
+    focus_default_title: "Focus Session",
     focus_quote: "\"The ability to concentrate without distraction...\"",
     focus_rest_desc: "There is no active \"Focus Block\" scheduled for right now in your Time Structure.",
     focus_rest_advice: "True productivity requires respecting the recovery phase.",
@@ -119,6 +148,8 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     reward_need_more: "Need more",
     reward_claimed: "Reward Claimed!",
     reward_claimed_sub: "Enjoy your hard-earned break.",
+    reward_blocks: "Blocks",
+    reward_progress: "Progress",
 
     // Psychology
     psych_tab_recall: "Active Recall",
@@ -186,6 +217,14 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     plan_cat_health: "Health & Body",
     plan_cat_life: "Social & Life",
     plan_cat_rest: "Rest & Recharge",
+    plan_busy: "Busy",
+    plan_free: "Free / Unplanned",
+    plan_assign_title: "Assign to Schedule",
+    plan_ideal_day: "Ideal Day",
+    plan_available_blocks: "Available Time Blocks",
+    plan_assign_help: "Assigning this task to a time slot links it to your \"Ideal Week\" and makes it available in Focus Mode at that time.",
+    plan_set_btn: "Set Schedule",
+    plan_clear_btn: "Clear",
 
     // Settings
     settings_title: "System Settings",
@@ -195,7 +234,12 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     settings_data: "Data & Account",
     settings_reset: "Factory Reset Data",
     settings_logout: "Log Out",
+    settings_sound_title: "Sound Effects",
+    settings_sound_desc: "Feedback clicks and completion tones.",
+    settings_theme_note: "Note: Dark mode is experimental and may require a refresh to fully propagate.",
+    settings_reset_confirm: "Are you sure you want to reset all data? This cannot be undone.",
   },
+
   // Kyrgyz Translation
   ky: {
     nav_dashboard: "Максат & Башкаруу",
@@ -209,6 +253,14 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     nav_settings: "Орнотуулар",
     nav_backup: "Маалыматты сактоо",
     nav_switch: "Профильди алмаштыруу",
+    nav_traveler_label: "Саякатчы",
+    nav_system_sub: "Система",
+
+    loading_journal: "Журнал жүктөлүүдө...",
+    status_synced: "Синхрондошту",
+    status_syncing: "Жүктөлүүдө...",
+    status_offline: "Оффлайн",
+    status_error: "Ката",
 
     dash_intent_title: "Максат Биринчи",
     dash_intent_desc: "Баштаардан мурун, жүрөгүңүздү бекемдеңиз. Бүгүнкү иш-аракеттериңиздин түпкү мааниси (Ниет) эмнеде?",
@@ -225,6 +277,9 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     dash_quests_title: "Күнүмдүк Тапшырмалар",
     dash_quests_sub: "Изденүү бактысы",
     dash_quests_placeholder: "...",
+    quest_work: "Иш",
+    quest_health: "Ден соолук",
+    quest_relationship: "Мамилелер",
 
     matrix_do: "Азыр Аткаруу",
     matrix_do_desc: "Шашылыш & Маанилүү",
@@ -249,6 +304,21 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     matrix_save_changes: "Сактоо",
     matrix_scheduled: "Пландалган",
 
+    task_untitled: "Аталышы жок",
+    task_completed_msg: "Тапшырма аткарылды!",
+    task_frog_tooltip_on: "Приоритетти алуу",
+    task_frog_tooltip_off: "Баканы же",
+    task_schedule_tooltip: "Пландаштыруу",
+    task_edit_tooltip: "Оңдоо",
+    task_delete_tooltip: "Жоюу",
+    task_purpose_placeholder: "Ниет (Эмне үчүн)...",
+    task_manage_subtasks: "Кадамдарды башкаруу",
+    task_add_step_placeholder: "Кадам кошуу...",
+    task_save_changes: "Сактоо",
+    task_suggestions: "Сунуштар",
+    task_enter: "Кирүү",
+    task_30m: "30м",
+
     sort_label: "Сорттоо",
     sort_priority: "Приоритет (Бакалар)",
     sort_newest: "Жаңылар",
@@ -264,6 +334,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
 
     focus_deep: "Терең Иш",
     focus_rest: "Эс алуу фазасы",
+    focus_default_title: "Фокус Сессиясы",
     focus_quote: "\"Алаксыбай туруп көңүл топтоо жөндөмү...\"",
     focus_rest_desc: "Убакыт структураңызда учурда активдүү \"Фокус блогу\" пландаштырылган эмес.",
     focus_rest_advice: "Чыныгы өндүрүмдүүлүк калыбына келтирүү фазасын урматтоону талап кылат.",
@@ -306,6 +377,8 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     reward_need_more: "Дагы керек",
     reward_claimed: "Сыйлык алынды!",
     reward_claimed_sub: "Эмгегиңиздин үзүрүн көрүңүз.",
+    reward_blocks: "Блок",
+    reward_progress: "Прогресс",
 
     psych_tab_recall: "Активдүү Эстөө",
     psych_tab_feynman: "Фейнман Техникасы",
@@ -369,6 +442,14 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     plan_cat_health: "Ден соолук",
     plan_cat_life: "Жашоо & Социалдык",
     plan_cat_rest: "Эс алуу",
+    plan_busy: "Бош эмес",
+    plan_free: "Бош / Пландалбаган",
+    plan_assign_title: "Графикке коюу",
+    plan_ideal_day: "Идеалдуу күн",
+    plan_available_blocks: "Бош убакыттар",
+    plan_assign_help: "Бул тапшырманы убакыт аралыгына дайындоо аны \"Идеалдуу Жумага\" шилтейт жана аны ошол убакта Фокус режиминде жеткиликтүү кылат.",
+    plan_set_btn: "Орнотуу",
+    plan_clear_btn: "Тазалоо",
 
     settings_title: "Система Орнотуулары",
     settings_audio: "Аудио Тажрыйбасы",
@@ -377,8 +458,12 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     settings_data: "Маалыматтар жана Аккаунт",
     settings_reset: "Маалыматтарды баштапкы абалга келтирүү",
     settings_logout: "Чыгуу",
+    settings_sound_title: "Үн эффекттери",
+    settings_sound_desc: "Басуу жана бүтүрүү үндөрү.",
+    settings_theme_note: "Эскертүү: Караңгы режим сыналууда жана толук иштеши үчүн жаңылоо талап кылынышы мүмкүн.",
+    settings_reset_confirm: "Сиз чын эле бардык маалыматтарды өчүрүүнү каалайсызбы? Муну жокко чыгаруу мүмкүн эмес.",
   },
-  // Fallbacks for other languages
+  // Fallbacks for other languages (Partial)
   es: {
     nav_dashboard: "Propósito y Panel",
     nav_tasks: "Tareas y Procesos",
@@ -391,23 +476,36 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     nav_settings: "Ajustes",
     nav_backup: "Copia de Seguridad",
     nav_switch: "Cambiar Perfil",
+    nav_traveler_label: "Viajero",
+    nav_system_sub: "Sistema",
     sort_label: "Ordenar",
     filter_label: "Filtrar",
     reward_title: "Descanso y Recompensa",
     stats_title: "Progreso e Ideas",
     settings_title: "Ajustes del Sistema",
+    loading_journal: "Cargando su diario...",
+    status_synced: "Sincronizado",
+    status_syncing: "Sincronizando...",
+    status_offline: "Desconectado",
+    status_error: "Error",
   },
   fr: {
     nav_dashboard: "But et Tableau de Bord",
+    nav_traveler_label: "Voyageur",
+    nav_system_sub: "Système",
     reward_title: "Repos et Récompense",
     stats_title: "Progrès et Statistiques",
   },
   de: {
     nav_dashboard: "Zweck & Dashboard",
+    nav_traveler_label: "Reisende",
+    nav_system_sub: "System",
     reward_title: "Ruhe & Belohnung",
   },
   jp: {
     nav_dashboard: "目的とダッシュボード",
+    nav_traveler_label: "旅行者",
+    nav_system_sub: "システム",
     reward_title: "休憩と報酬",
   }
 };

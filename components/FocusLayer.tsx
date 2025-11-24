@@ -147,9 +147,9 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
              </div>
              <h2 className="text-3xl font-serif font-bold text-stone-800 mb-3">{t('focus_rest', lang)}</h2>
              <p className="text-stone-500 font-serif italic mb-8 leading-relaxed max-w-md mx-auto">
-                 There is no active "Focus Block" scheduled for right now in your Time Structure. 
+                 {t('focus_rest_desc', lang)}
                  <br/><br/>
-                 True productivity requires respecting the recovery phase.
+                 {t('focus_rest_advice', lang)}
              </p>
 
              <div className="flex flex-col gap-3 max-w-xs mx-auto">
@@ -157,13 +157,13 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
                     onClick={() => navigate('/plan')}
                     className="flex items-center justify-center gap-2 bg-stone-800 text-white px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-stone-700 transition-all rounded-sm"
                  >
-                    <Clock size={14} /> Check Schedule
+                    <Clock size={14} /> {t('focus_check_schedule', lang)}
                  </button>
                  <button 
                     onClick={() => navigate('/rewards')}
                     className="flex items-center justify-center gap-2 bg-white text-stone-600 border border-stone-200 px-6 py-3 text-xs font-bold uppercase tracking-widest hover:border-emerald-400 hover:text-emerald-600 transition-all rounded-sm"
                  >
-                    <Coffee size={14} /> Visit Reward Shop
+                    <Coffee size={14} /> {t('focus_visit_shop', lang)}
                  </button>
              </div>
           </div>
@@ -180,6 +180,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             onToggle={toggleTimer}
             onReset={resetTimer}
             selectedTaskTitle={selectedTask?.title}
+            language={lang}
         />
       );
   }
@@ -194,7 +195,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
             <div className="animate-fade-in space-y-2">
                 <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">
                     <Target size={14} />
-                    <span>Active Target</span>
+                    <span>{t('focus_active_target', lang)}</span>
                 </div>
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-white leading-tight break-words">{selectedTask.title}</h2>
                 {selectedTask.purpose && (
@@ -224,12 +225,12 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
                       <Clock size={20} />
                   </div>
                   <div>
-                      <div className="text-[10px] uppercase tracking-widest text-amber-700 font-bold mb-1">Scheduled For Now</div>
+                      <div className="text-[10px] uppercase tracking-widest text-amber-700 font-bold mb-1">{t('focus_scheduled_now', lang)}</div>
                       <div className="font-serif text-stone-800 font-bold text-xl">{currentBlock.label}</div>
                       <div className="text-xs text-stone-500 mt-1 flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${currentBlock.category === 'DEEP' ? 'bg-stone-800' : 'bg-emerald-500'}`}></div>
-                            {currentBlock.category} Category
-                            {currentBlock.duration === 30 && <span className="ml-1 px-1 bg-amber-200 text-amber-800 rounded text-[8px]">30m</span>}
+                            {currentBlock.category} {t('focus_category', lang)}
+                            {currentBlock.duration === 30 && <span className="ml-1 px-1 bg-amber-200 text-amber-800 rounded text-[8px]">{t('task_30m', lang)}</span>}
                       </div>
                   </div>
               </div>
@@ -241,12 +242,12 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
                       <Target size={14} />
                       <span>{t('focus_select_target', lang)}</span>
                   </div>
-                  <button onClick={() => navigate('/tasks')} className="text-[10px] text-stone-400 hover:text-stone-600 underline">Manage Tasks</button>
+                  <button onClick={() => navigate('/tasks')} className="text-[10px] text-stone-400 hover:text-stone-600 underline">{t('focus_manage_tasks', lang)}</button>
               </div>
               
               {tasks.filter(t => !t.completed).length === 0 ? (
                   <div className="text-stone-400 text-sm italic py-4 text-center border border-dashed border-stone-300 rounded">
-                      No open tasks found.
+                      {t('focus_no_tasks', lang)}
                   </div>
               ) : (
                   <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar">

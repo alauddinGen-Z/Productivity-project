@@ -120,7 +120,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
         <div className="relative z-10 flex items-center gap-4 bg-stone-800/50 p-4 rounded-sm border border-stone-700">
            <div className="text-right">
               <div className="text-[10px] uppercase tracking-widest text-stone-400">{t('reward_balance', lang)}</div>
-              <div className="text-3xl font-mono font-bold text-emerald-400">{state.blockBalance} Blocks</div>
+              <div className="text-3xl font-mono font-bold text-emerald-400">{state.blockBalance} {t('reward_blocks', lang)}</div>
            </div>
            <Box size={40} className="text-emerald-500" />
         </div>
@@ -284,7 +284,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) =>
                         {!canAfford && (
                             <div className="mb-2">
                                 <div className="flex justify-between text-[10px] text-stone-400 uppercase tracking-wider mb-1">
-                                    <span>Progress</span>
+                                    <span>{t('reward_progress', lang)}</span>
                                     <span>{progressPercent}%</span>
                                 </div>
                                 <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
