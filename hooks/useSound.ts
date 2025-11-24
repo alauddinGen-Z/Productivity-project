@@ -144,5 +144,41 @@ export const useSound = () => {
     } catch (e) {}
   }, [resumeContext]);
 
-  return { playClick, playSoftClick, playSuccess, playAdd, playDelete, playWhoosh };
+  const playSessionComplete = useCallback(async () => {
+    if (!isSoundEnabled()) return;
+    try {
+      const ctx = await resumeContext();
+      if (!ctx) return;
+      
+      const now = ctx.currentTime;
+      
+      // Meditation Bell / Gong simulation
+      const baseFreq = 440; // A4
+      // Ratios for bell-like partials
+      const harmonics = [1, 2, 3, 4.2, 5.4]; 
+      
+      harmonics.forEach((h, i) => {
+         const osc = ctx.createOscillator();
+         const gain = ctx.createGain();
+         
+         osc.type = 'sine';
+         osc.frequency.setValueAtTime(baseFreq * h, now);
+         
+         // Lower harmonics last longer
+         const duration = 2.5 - (i * 0.4); 
+         
+         gain.gain.setValueAtTime(0, now);
+         gain.gain.linearRampToValueAtTime(0.1 / (i + 1), now + 0.05); // Soft attack
+         gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+         
+         osc.connect(gain);
+         gain.connect(ctx.destination);
+         
+         osc.start(now);
+         osc.stop(now + duration);
+      });
+    } catch (e) {}
+  }, [resumeContext]);
+
+  return { playClick, playSoftClick, playSuccess, playAdd, playDelete, playWhoosh, playSessionComplete };
 };

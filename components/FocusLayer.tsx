@@ -16,7 +16,7 @@ interface FocusLayerProps {
 
 export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, schedule, language = 'en' }) => {
   const navigate = useNavigate();
-  const { playClick, playSuccess, playSoftClick } = useSound();
+  const { playClick, playSuccess, playSoftClick, playSessionComplete } = useSound();
   
   const [isDeepWorkMode, setIsDeepWorkMode] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
@@ -103,7 +103,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
       }, 1000);
     } else if (timeLeft === 0 && isActive) {
       setIsActive(false);
-      playSuccess(); 
+      playSessionComplete(); 
       if (mode === 'focus') {
         // Session Complete: Wait for user input
         setIsSessionDone(true);
@@ -114,7 +114,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
       }
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, mode, playSuccess]);
+  }, [isActive, timeLeft, mode, playSessionComplete]);
 
   const toggleTimer = () => {
       playClick();
@@ -132,7 +132,7 @@ export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, sched
   const handleTaskCompletion = () => {
     if (selectedTaskId) {
         toggleTask(selectedTaskId);
-        playSuccess();
+        playSuccess(); // Still play success sound when manually completing task
         setIsDeepWorkMode(false);
         setIsSessionDone(false);
         setSelectedTaskId('');
