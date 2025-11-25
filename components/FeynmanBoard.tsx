@@ -1,14 +1,12 @@
-
 import React, { useState } from 'react';
 import { useSound } from '../hooks/useSound';
-import { Settings } from '../types';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
-interface FeynmanBoardProps {
-  language: Settings['language'];
-}
-
-export const FeynmanBoard: React.FC<FeynmanBoardProps> = ({ language }) => {
+export const FeynmanBoard: React.FC = () => {
+  const { state } = useApp();
+  const language = state.settings.language;
+  
   const [feynmanConcept, setFeynmanConcept] = useState('');
   const [feynmanExplanation, setFeynmanExplanation] = useState('');
   const { playSoftClick } = useSound();

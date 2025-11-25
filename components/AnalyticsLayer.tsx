@@ -77,7 +77,7 @@ export const AnalyticsLayer: React.FC = () => {
       {/* Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Schedule Adherence (Click to Plan) */}
+        {/* Schedule Adherence */}
          <div 
             onClick={() => navigate('/plan')}
             className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 flex items-center gap-6 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all group"
@@ -92,7 +92,7 @@ export const AnalyticsLayer: React.FC = () => {
           </div>
         </div>
 
-        {/* Task Completion (Click to Tasks) */}
+        {/* Task Completion */}
         <div 
             onClick={() => navigate('/tasks')}
             className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 flex items-center gap-6 cursor-pointer hover:shadow-md hover:border-stone-400 transition-all group"
@@ -110,7 +110,7 @@ export const AnalyticsLayer: React.FC = () => {
           </div>
         </div>
 
-        {/* Quest Streak (Click to Dashboard) */}
+        {/* Quest Streak */}
         <div 
             onClick={() => navigate('/')}
             className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 flex items-center gap-6 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all group"
@@ -194,26 +194,32 @@ export const AnalyticsLayer: React.FC = () => {
         </div>
 
         {/* 3. System Health */}
-        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200">
-           <div className="flex justify-between items-start mb-8">
-             <div>
-                <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_system_health', lang)}</h3>
-                <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_consistency', lang)}</p>
-             </div>
-             <Layers className="text-stone-200" size={24} />
-          </div>
-
-          <div className="space-y-8">
-             <div>
-                <div className="flex justify-between text-sm mb-2 font-serif">
-                   <span className="text-stone-600">{t('stats_knowledge', lang)}</span>
-                   <span className="text-stone-800 font-bold">{state.flashcards.length} {t('stats_cards', lang)}</span>
+        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2">
+            <div className="flex justify-between items-start mb-6">
+                <div>
+                   <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_system_health', lang)}</h3>
+                   <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_consistency', lang)}</p>
                 </div>
-                <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
-                    <div className="h-full bg-stone-400" style={{ width: `${Math.min(100, state.flashcards.length * 5)}%` }}></div>
+                <Layers className="text-stone-200" size={24} />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
+                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('stats_knowledge', lang)}</div>
+                    <div className="text-2xl font-serif font-bold text-stone-800">{state.flashcards.length}</div>
+                    <div className="text-xs text-stone-400">{t('stats_cards', lang)}</div>
                 </div>
-             </div>
-          </div>
+                <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
+                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('nav_review', lang)}</div>
+                    <div className="text-2xl font-serif font-bold text-stone-800">{state.reflections.length}</div>
+                    <div className="text-xs text-stone-400">Entries</div>
+                </div>
+                <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
+                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Focus</div>
+                    <div className="text-2xl font-serif font-bold text-stone-800">100%</div>
+                    <div className="text-xs text-stone-400">Intent</div>
+                </div>
+            </div>
         </div>
 
       </div>

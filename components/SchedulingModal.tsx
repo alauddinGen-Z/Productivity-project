@@ -1,31 +1,30 @@
-
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, AlertCircle, Trash2, X } from 'lucide-react';
-import { WeeklySchedule, Settings } from '../types';
+import { Calendar, AlertCircle, Trash2, X } from 'lucide-react';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
 interface SchedulingModalProps {
-  schedule: WeeklySchedule;
   taskId: string;
   onClose: () => void;
   onConfirm: (day: string, hour: number) => void;
   onClear: () => void;
   existingSlot: string | null;
-  language?: Settings['language'];
 }
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
 const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const SchedulingModal: React.FC<SchedulingModalProps> = ({
-  schedule,
   taskId,
   onClose,
   onConfirm,
   onClear,
-  existingSlot,
-  language = 'en'
+  existingSlot
 }) => {
+  const { state } = useApp();
+  const schedule = state.weeklySchedule;
+  const language = state.settings.language;
+
   const [selectedDay, setSelectedDay] = useState(DAY_KEYS[0]);
   const [selectedHour, setSelectedHour] = useState(9);
 

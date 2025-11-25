@@ -1,18 +1,20 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap, Hourglass, Lock, CalendarDays, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import { WeeklySchedule, Task, TaskQuadrant, Settings } from '../types';
+import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Hourglass, Lock, CalendarDays, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Task, TaskQuadrant } from '../types';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
 interface TaskCreationFormProps {
   onAddTask: (task: Partial<Task>, slot: {key: string, label: string, hour: number} | null) => void;
-  schedule: WeeklySchedule;
   existingTags: string[];
-  language: Settings['language'];
 }
 
-export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, schedule, existingTags, language }) => {
+export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, existingTags }) => {
+  const { state } = useApp();
+  const schedule = state.weeklySchedule;
+  const language = state.settings.language;
+
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -37,7 +39,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
   const tagInputRef = useRef<HTMLInputElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
   
-  const { playClick, playAdd } = useSound();
+  const { playClick } = useSound();
 
   // Map app language to standard locales for Date formatting
   const localeMap: Record<string, string> = {

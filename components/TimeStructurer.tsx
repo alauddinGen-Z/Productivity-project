@@ -382,7 +382,6 @@ export const TimeStructurer: React.FC = () => {
             onDelete={deleteBlock}
             hasExistingBlock={!!schedule[view][`${editingCell.day}-${editingCell.hour}`]}
             categories={categories}
-            language={language}
         />
       )}
 

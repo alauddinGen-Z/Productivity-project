@@ -24,21 +24,17 @@ import { useApp } from '../context/AppContext';
 interface NavigationProps {
   mobileOpen: boolean;
   setMobileOpen: (o: boolean) => void;
-  onLogout: () => void;
-  onExport: () => void;
   loaders: Record<string, () => Promise<any>>;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ 
   mobileOpen, 
   setMobileOpen, 
-  onLogout, 
-  onExport, 
   loaders
 }) => {
   const location = useLocation();
   const { playClick, playSoftClick } = useSound();
-  const { state } = useApp();
+  const { state, handleExport, onLogout } = useApp();
   const { userName, blockBalance, settings } = state;
   const language = settings.language;
   
@@ -126,7 +122,7 @@ export const Navigation: React.FC<NavigationProps> = ({
             <span>{t('nav_settings', language)}</span>
         </Link>
         <button 
-          onClick={() => { playClick(); onExport(); }}
+          onClick={() => { playClick(); handleExport(); }}
           className="flex items-center gap-3 w-full px-4 py-2 text-stone-400 hover:text-stone-100 transition-colors text-sm"
         >
           <Download size={16} />

@@ -6,7 +6,7 @@ import { t } from '../utils/translations';
 import { useApp } from '../context/AppContext';
 
 export const PsychologyLayer: React.FC = () => {
-  const { state, updateState } = useApp();
+  const { state } = useApp();
   const language = state.settings.language;
   const [activeTab, setActiveTab] = useState<'recall' | 'feynman'>('recall');
   const { playClick } = useSound();
@@ -29,7 +29,7 @@ export const PsychologyLayer: React.FC = () => {
       </div>
 
       {activeTab === 'recall' && <FlashcardDeck />}
-      {activeTab === 'feynman' && <FeynmanBoard language={language} />}
+      {activeTab === 'feynman' && <FeynmanBoard />}
     </div>
   );
 };

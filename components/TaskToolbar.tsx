@@ -1,10 +1,9 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { LayoutGrid, List, Filter, ArrowUpDown, Check, ChevronDown } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { SortOption } from './TaskMatrix';
 import { t } from '../utils/translations';
-import { Settings } from '../types';
+import { useApp } from '../context/AppContext';
 
 interface TaskToolbarProps {
   activeView: 'matrix' | 'ivylee';
@@ -15,7 +14,6 @@ interface TaskToolbarProps {
   uniqueTags: string[];
   sortBy: SortOption;
   setSortBy: (sort: SortOption) => void;
-  language: Settings['language'];
 }
 
 export const TaskToolbar: React.FC<TaskToolbarProps> = ({
@@ -26,9 +24,11 @@ export const TaskToolbar: React.FC<TaskToolbarProps> = ({
   clearTags,
   uniqueTags,
   sortBy,
-  setSortBy,
-  language
+  setSortBy
 }) => {
+  const { state } = useApp();
+  const language = state.settings.language;
+
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const tagMenuRef = useRef<HTMLDivElement>(null);

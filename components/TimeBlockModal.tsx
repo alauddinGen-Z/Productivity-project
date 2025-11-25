@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { X, Check, Trash2, LayoutGrid } from 'lucide-react';
-import { TimeBlock, BlockCategory, Settings } from '../types';
+import { TimeBlock, BlockCategory } from '../types';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
 interface TimeBlockModalProps {
   editingCell: { day: string; hour: number };
@@ -20,7 +20,6 @@ interface TimeBlockModalProps {
   onDelete: () => void;
   hasExistingBlock: boolean;
   categories: { id: BlockCategory; label: string; icon: React.ElementType }[];
-  language: Settings['language'];
 }
 
 export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
@@ -39,8 +38,10 @@ export const TimeBlockModal: React.FC<TimeBlockModalProps> = ({
   onDelete,
   hasExistingBlock,
   categories,
-  language
 }) => {
+  const { state } = useApp();
+  const language = state.settings.language;
+
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-stone-900/10 backdrop-blur-[1px]">
       <div className="bg-white p-6 rounded-sm shadow-xl border border-stone-200 w-80 animate-fade-in">

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Task, TaskQuadrant, TimeBlock, Settings } from '../types';
+import { Task, TaskQuadrant, TimeBlock } from '../types';
 import { Box, CornerDownRight, Edit2, Check } from 'lucide-react';
 import { SchedulingModal } from './SchedulingModal';
 import { useSound } from '../hooks/useSound';
@@ -20,10 +20,12 @@ const IvyLeeTaskItem: React.FC<{
   index: number;
   toggleTask: (id: string) => void;
   updateTitle: (id: string, title: string) => void;
-  language: Settings['language'];
   playSuccess: () => void;
   playClick: () => void;
-}> = React.memo(({ task, index, toggleTask, updateTitle, language, playSuccess, playClick }) => {
+}> = React.memo(({ task, index, toggleTask, updateTitle, playSuccess, playClick }) => {
+  const { state } = useApp();
+  const language = state.settings.language;
+
   const [isCompleting, setIsCompleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [localTitle, setLocalTitle] = useState(task.title);
@@ -346,14 +348,11 @@ export const TaskMatrix: React.FC = React.memo(() => {
         uniqueTags={uniqueTags}
         sortBy={sortBy}
         setSortBy={setSortBy}
-        language={language}
       />
 
       <TaskCreationForm 
         onAddTask={handleAddTask} 
-        schedule={schedule} 
         existingTags={uniqueTags}
-        language={language}
       />
 
       {activeView === 'matrix' ? (
@@ -378,7 +377,6 @@ export const TaskMatrix: React.FC = React.memo(() => {
              onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
-             language={language}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.SCHEDULE}
@@ -400,7 +398,6 @@ export const TaskMatrix: React.FC = React.memo(() => {
              onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
-             language={language}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.DELEGATE}
@@ -422,7 +419,6 @@ export const TaskMatrix: React.FC = React.memo(() => {
              onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
-             language={language}
           />
           <TaskQuadrantColumn 
              quadrant={TaskQuadrant.DELETE}
@@ -444,7 +440,6 @@ export const TaskMatrix: React.FC = React.memo(() => {
              onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
-             language={language}
           />
         </div>
       ) : (
@@ -466,7 +461,6 @@ export const TaskMatrix: React.FC = React.memo(() => {
                   index={index}
                   toggleTask={toggleTask}
                   updateTitle={updateTitle}
-                  language={language}
                   playSuccess={playSuccess}
                   playClick={playClick}
                 />
@@ -478,13 +472,11 @@ export const TaskMatrix: React.FC = React.memo(() => {
 
       {schedulingTaskId && (
         <SchedulingModal 
-            schedule={schedule}
             taskId={schedulingTaskId}
             onClose={() => setSchedulingTaskId(null)}
             onConfirm={confirmSchedule}
             onClear={clearTaskSchedule}
             existingSlot={getTaskSlot(schedulingTaskId)}
-            language={language}
         />
       )}
     </div>
