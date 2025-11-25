@@ -1,16 +1,11 @@
-
 import React, { useState, useMemo } from 'react';
-import { AppState } from '../types';
 import { BarChart3, Trophy, CheckCircle, Clock, Archive } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
-interface WeeklyReviewProps {
-  state: AppState;
-  updateState: (updates: Partial<AppState>) => void;
-}
-
-export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ state, updateState }) => {
+export const WeeklyReview: React.FC = () => {
+  const { state, updateState } = useApp();
   const [wins, setWins] = useState(['', '', '']);
   const [alignment, setAlignment] = useState('');
   const [isSaved, setIsSaved] = useState(false);

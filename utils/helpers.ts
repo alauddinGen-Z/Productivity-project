@@ -1,5 +1,11 @@
 
-export const generateId = () => {
+/**
+ * Generates a unique identifier (UUID v4).
+ * Uses `crypto.randomUUID` if available, otherwise falls back to a math-based generator.
+ * 
+ * @returns {string} A standard UUID string.
+ */
+export const generateId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }

@@ -1,18 +1,17 @@
-
 import React from 'react';
-import { AppState, Settings } from '../types';
-import { Volume2, VolumeX, Moon, Sun, Monitor, Globe, Settings as SettingsIcon, LogOut, Database, RefreshCcw } from 'lucide-react';
+import { Settings } from '../types';
+import { Volume2, Moon, Sun, Monitor, Globe, Settings as SettingsIcon, LogOut, Database, RefreshCcw } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
 interface SettingsLayerProps {
-  state: AppState;
-  updateState: (updates: Partial<AppState>) => void;
-  onLogout: () => void;
+  onLogout?: () => void; // Optional prop if logout is handled via context or passed prop (App.tsx currently passes it)
 }
 
-export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState, onLogout }) => {
-  const { playClick, playSoftClick } = useSound();
+export const SettingsLayer: React.FC<SettingsLayerProps> = ({ onLogout }) => {
+  const { state, updateState } = useApp();
+  const { playClick } = useSound();
   const { settings } = state;
   const lang = settings.language;
 
@@ -123,13 +122,15 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ state, updateState
                     <RefreshCcw size={16} className="group-hover:rotate-180 transition-transform" />
                 </button>
 
-                <button 
-                    onClick={onLogout}
-                    className="w-full flex items-center justify-between p-4 bg-white border border-stone-200 hover:border-stone-400 hover:bg-stone-100 text-stone-600 transition-colors rounded-sm"
-                >
-                    <span className="text-sm font-bold uppercase tracking-wide">{t('settings_logout', lang)}</span>
-                    <LogOut size={16} />
-                </button>
+                {onLogout && (
+                    <button 
+                        onClick={onLogout}
+                        className="w-full flex items-center justify-between p-4 bg-white border border-stone-200 hover:border-stone-400 hover:bg-stone-100 text-stone-600 transition-colors rounded-sm"
+                    >
+                        <span className="text-sm font-bold uppercase tracking-wide">{t('settings_logout', lang)}</span>
+                        <LogOut size={16} />
+                    </button>
+                )}
             </div>
         </div>
 

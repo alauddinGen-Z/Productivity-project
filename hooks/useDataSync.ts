@@ -3,6 +3,14 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { AppState, INITIAL_STATE } from '../types';
 
+/**
+ * Custom hook to handle data synchronization between local state and Supabase.
+ * Features automatic loading on login and debounced saving on state changes.
+ * 
+ * @param {Object | null} userSession - The current user session object containing email and name.
+ * @param {AppState} state - The current application state to be synced.
+ * @returns {Object} An object containing the synced state, loading status, save status, and any error messages.
+ */
 export const useDataSync = (userSession: { email: string; name: string } | null, state: AppState) => {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [isLoginLoading, setIsLoginLoading] = useState(!!userSession);

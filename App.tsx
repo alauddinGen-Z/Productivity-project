@@ -1,11 +1,12 @@
-
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Menu, CheckCircle2, Loader2 } from 'lucide-react';
+import { Menu, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 import { AppState, INITIAL_STATE, Task, WeeklySchedule, RewardItem } from './types';
 import { IntroAnimation } from './components/IntroAnimation';
 import { useDataSync } from './hooks/useDataSync';
+import { t } from './utils/translations';
+import { AppContext, AppContextType } from './context/AppContext';
 
 // Extracted Components
 import { LandingPage } from './components/LandingPage';
@@ -62,28 +63,20 @@ const DEFAULT_REWARDS: RewardItem[] = [
   { id: 'nap-1', title: '20 Min Power Nap', cost: 6, icon: 'Moon', description: 'Reset your brain.' },
 ];
 
-const AnimatedRoutes: React.FC<{
-  state: AppState;
-  updateState: (updates: Partial<AppState>) => void;
-  updateTasks: (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => void;
-  updateSchedule: (schedule: WeeklySchedule) => void;
-  toggleTask: (id: string) => void;
-  onLogout: () => void;
-}> = ({ state, updateState, updateTasks, updateSchedule, toggleTask, onLogout }) => {
+const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
-
   return (
     <div key={location.pathname} className="animate-fade-slide">
       <Routes location={location}>
-        <Route path="/" element={<Dashboard state={state} updateState={updateState} />} />
-        <Route path="/tasks" element={<TaskMatrix tasks={state.tasks} setTasks={updateTasks} schedule={state.weeklySchedule} updateSchedule={updateSchedule} toggleTask={toggleTask} />} />
-        <Route path="/focus" element={<FocusLayer tasks={state.tasks} toggleTask={toggleTask} schedule={state.weeklySchedule} />} />
-        <Route path="/psych" element={<PsychologyLayer state={state} updateState={updateState} language={state.settings.language} />} />
-        <Route path="/graphics" element={<AnalyticsLayer state={state} />} />
-        <Route path="/plan" element={<TimeStructurer schedule={state.weeklySchedule} updateSchedule={updateSchedule} updateTasks={updateTasks} language={state.settings.language} />} />
-        <Route path="/review" element={<WeeklyReview state={state} updateState={updateState} />} />
-        <Route path="/rewards" element={<RewardShop state={state} updateState={updateState} />} />
-        <Route path="/settings" element={<SettingsLayer state={state} updateState={updateState} onLogout={onLogout} />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/tasks" element={<TaskMatrix />} />
+        <Route path="/focus" element={<FocusLayer />} />
+        <Route path="/psych" element={<PsychologyLayer />} />
+        <Route path="/graphics" element={<AnalyticsLayer />} />
+        <Route path="/plan" element={<TimeStructurer />} />
+        <Route path="/review" element={<WeeklyReview />} />
+        <Route path="/rewards" element={<RewardShop />} />
+        <Route path="/settings" element={<SettingsLayer />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
@@ -106,9 +99,10 @@ const App: React.FC = () => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const [mobileOpen, setMobileOpen] = useState(false);
   
-  const { syncedState, isLoginLoading, saveStatus } = useDataSync(userSession, state);
+  const { syncedState, isLoginLoading, saveStatus, errorMessage } = useDataSync(userSession, state);
   
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem(INTRO_SEEN_KEY));
+  const lang = state.settings.language;
 
   // Sync Logic
   useEffect(() => {
@@ -131,9 +125,7 @@ const App: React.FC = () => {
         }
 
         // --- Data Migration: Move defaults to shopItems if empty ---
-        // If shopItems is undefined (old user) or empty, we might want to populate defaults
         if (!finalData.shopItems || finalData.shopItems.length === 0) {
-           // Check if there are old customRewards we need to migrate (from old types.ts)
            const oldCustomRewards = (finalData as any).customRewards || [];
            finalData = {
                ...finalData,
@@ -150,8 +142,6 @@ const App: React.FC = () => {
         }
 
         setState(finalData);
-        
-        // Sync local storage setting for useSound
         localStorage.setItem('intentional_settings', JSON.stringify(finalData.settings));
     }
   }, [syncedState, isLoginLoading, userSession]);
@@ -171,14 +161,14 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem(USER_KEY);
     sessionStorage.removeItem(USER_KEY);
     setUserSession(null);
     setState(INITIAL_STATE);
-  };
+  }, []);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
@@ -186,18 +176,24 @@ const App: React.FC = () => {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
-  };
+  }, [state]);
 
-  const updateState = (updates: Partial<AppState>) => setState(prev => ({ ...prev, ...updates }));
-  const updateTasks = (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => {
+  const updateState = useCallback((updates: Partial<AppState>) => {
+    setState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const updateTasks = useCallback((tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => {
       setState(prev => {
         const newTasks = typeof tasksOrUpdater === 'function' ? tasksOrUpdater(prev.tasks) : tasksOrUpdater;
         return { ...prev, tasks: newTasks };
       });
-  };
-  const updateSchedule = (weeklySchedule: WeeklySchedule) => updateState({ weeklySchedule });
+  }, []);
 
-  const toggleTask = (id: string) => {
+  const updateSchedule = useCallback((weeklySchedule: WeeklySchedule) => {
+    updateState({ weeklySchedule });
+  }, [updateState]);
+
+  const toggleTask = useCallback((id: string) => {
     setState(prev => {
         const targetTask = prev.tasks.find(t => t.id === id);
         if (!targetTask) return prev;
@@ -210,84 +206,87 @@ const App: React.FC = () => {
             tasks: prev.tasks.map(t => t.id === id ? { ...t, completed: isCompleting } : t)
         };
     });
-  };
+  }, []);
+
+  const contextValue: AppContextType = useMemo(() => ({
+    state,
+    updateState,
+    updateTasks,
+    updateSchedule,
+    toggleTask
+  }), [state, updateState, updateTasks, updateSchedule, toggleTask]);
 
   if (!userSession) return <LandingPage onLogin={handleLogin} loading={isLoginLoading} />;
 
   return (
-    <Router>
-       {showIntro && <IntroAnimation onComplete={() => {
-           setShowIntro(false);
-           sessionStorage.setItem(INTRO_SEEN_KEY, 'true');
-       }} />}
-      <div className={`flex min-h-screen font-sans selection:bg-amber-100 selection:text-amber-900 ${state.settings.theme === 'dark' ? 'bg-stone-900 text-stone-100' : 'bg-[#FAF9F6] text-stone-800'}`}>
-        <Navigation 
-          mobileOpen={mobileOpen} 
-          setMobileOpen={setMobileOpen} 
-          onLogout={handleLogout}
-          onExport={handleExport}
-          userName={userSession.name}
-          blockBalance={state.blockBalance}
-          loaders={loaders}
-        />
+    <AppContext.Provider value={contextValue}>
+        <Router>
+        {showIntro && <IntroAnimation onComplete={() => {
+            setShowIntro(false);
+            sessionStorage.setItem(INTRO_SEEN_KEY, 'true');
+        }} />}
+        <div className={`flex min-h-screen font-sans selection:bg-amber-100 selection:text-amber-900 ${state.settings.theme === 'dark' ? 'bg-stone-900 text-stone-100' : 'bg-[#FAF9F6] text-stone-800'}`}>
+            <Navigation 
+              mobileOpen={mobileOpen} 
+              setMobileOpen={setMobileOpen} 
+              onLogout={handleLogout}
+              onExport={handleExport}
+              loaders={loaders}
+            />
 
-        <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-          <header className="lg:hidden bg-[#FAF9F6] border-b border-stone-200 p-4 flex items-center justify-between">
-            <div className="font-serif font-bold text-stone-800 text-lg">The Intentional System</div>
-            <button onClick={() => setMobileOpen(true)} className="text-stone-600">
-              <Menu />
-            </button>
-          </header>
+            <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+            <header className="lg:hidden bg-[#FAF9F6] border-b border-stone-200 p-4 flex items-center justify-between">
+                <div className="font-serif font-bold text-stone-800 text-lg">The Intentional System</div>
+                <button onClick={() => setMobileOpen(true)} className="text-stone-600">
+                <Menu />
+                </button>
+            </header>
 
-          <div className="absolute top-4 right-4 lg:top-6 lg:right-8 z-40 flex items-center gap-2 text-xs font-medium text-stone-400 bg-white/50 px-2 py-1 rounded-full backdrop-blur-sm">
-            {saveStatus === 'saved' ? (
-              <>
-                <CheckCircle2 size={14} className="text-emerald-600" />
-                <span className="text-emerald-700">Synced</span>
-              </>
-            ) : saveStatus === 'saving' ? (
-              <>
-                <span className="animate-pulse w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="text-stone-500">Syncing...</span>
-              </>
-            ) : (
-               <>
-                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                <span className="text-red-500">Offline</span>
-              </>
-            )}
-          </div>
+            <div className="absolute top-4 right-4 lg:top-6 lg:right-8 z-40 flex items-center gap-2 text-xs font-medium bg-white/50 px-3 py-1.5 rounded-full backdrop-blur-sm border border-stone-100 shadow-sm">
+                {saveStatus === 'saved' ? (
+                <>
+                    <CheckCircle2 size={14} className="text-emerald-600" />
+                    <span className="text-emerald-700">{t('status_synced', lang)}</span>
+                </>
+                ) : saveStatus === 'saving' ? (
+                <>
+                    <Loader2 size={14} className="animate-spin text-amber-500" />
+                    <span className="text-stone-500">{t('status_syncing', lang)}</span>
+                </>
+                ) : (
+                <>
+                    <AlertCircle size={14} className="text-red-500" />
+                    <span className="text-red-600" title={errorMessage || "Sync Error"}>
+                    {errorMessage?.includes("column") ? t('status_error', lang) : t('status_error', lang)}
+                    </span>
+                </>
+                )}
+            </div>
 
-          {isLoginLoading ? (
-             <div className="flex-1 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="animate-spin text-stone-400" size={32} />
-                  <p className="text-stone-400 font-serif italic">Loading your journal...</p>
-                </div>
-             </div>
-          ) : (
-            <main className={`flex-1 overflow-auto p-4 lg:p-12 ${state.settings.theme === 'dark' ? 'bg-[#1c1917]' : 'bg-[#FAF9F6]'}`}>
-              <div className="max-w-6xl mx-auto">
-                <Suspense fallback={
-                    <div className="h-64 flex items-center justify-center">
-                        <Loader2 className="animate-spin text-stone-300" />
+            {isLoginLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="animate-spin text-stone-400" size={32} />
+                    <p className="text-stone-400 font-serif italic">{t('loading_journal', lang)}</p>
                     </div>
-                }>
-                    <AnimatedRoutes 
-                      state={state} 
-                      updateState={updateState} 
-                      updateTasks={updateTasks} 
-                      updateSchedule={updateSchedule} 
-                      toggleTask={toggleTask} 
-                      onLogout={handleLogout}
-                    />
-                </Suspense>
-              </div>
-            </main>
-          )}
+                </div>
+            ) : (
+                <main className={`flex-1 overflow-auto p-4 lg:p-12 ${state.settings.theme === 'dark' ? 'bg-[#1c1917]' : 'bg-[#FAF9F6]'}`}>
+                <div className="max-w-6xl mx-auto">
+                    <Suspense fallback={
+                        <div className="h-64 flex items-center justify-center">
+                            <Loader2 className="animate-spin text-stone-300" />
+                        </div>
+                    }>
+                        <AnimatedRoutes />
+                    </Suspense>
+                </div>
+                </main>
+            )}
+            </div>
         </div>
-      </div>
-    </Router>
+        </Router>
+    </AppContext.Provider>
   );
 };
 

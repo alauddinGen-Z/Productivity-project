@@ -1,22 +1,18 @@
-
 import React, { useState, useMemo } from 'react';
-import { Target, Calendar, Heart, Quote, PenLine, CheckSquare, Sparkles, Feather, Activity, Box, Zap, ChevronDown, ChevronUp } from 'lucide-react';
-import { AppState, DailyQuests } from '../types';
+import { Target, Sparkles, Feather, Activity, Box, Zap, ChevronDown, ChevronUp, CheckSquare, PenLine } from 'lucide-react';
+import { DailyQuests } from '../types';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
 import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 
-interface DashboardProps {
-  state: AppState;
-  updateState: (updates: Partial<AppState>) => void;
-}
-
-export const Dashboard: React.FC<DashboardProps> = ({ state, updateState }) => {
+export const Dashboard: React.FC = () => {
+  const { state, updateState } = useApp();
   const navigate = useNavigate();
   const [isEditingVision, setIsEditingVision] = useState(false);
   const [isVisionExpanded, setIsVisionExpanded] = useState(false);
   const [niyyahInput, setNiyyahInput] = useState(state.currentNiyyah);
-  const { playSuccess, playClick, playAdd, playSoftClick } = useSound();
+  const { playSuccess, playClick, playAdd } = useSound();
   const lang = state.settings.language;
 
   const greeting = useMemo(() => {

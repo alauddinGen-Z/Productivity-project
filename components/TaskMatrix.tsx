@@ -1,26 +1,16 @@
-
-
 import React, { useState, useMemo, useCallback } from 'react';
-import { Task, TaskQuadrant, WeeklySchedule, TimeBlock, Settings } from '../types';
+import { Task, TaskQuadrant, TimeBlock, Settings } from '../types';
 import { Box, CornerDownRight, Edit2, Check } from 'lucide-react';
 import { SchedulingModal } from './SchedulingModal';
 import { useSound } from '../hooks/useSound';
 import { generateId } from '../utils/helpers';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
 // Sub-components
 import { TaskToolbar } from './TaskToolbar';
 import { TaskCreationForm } from './TaskCreationForm';
 import { TaskQuadrantColumn } from './TaskQuadrantColumn';
-
-interface TaskMatrixProps {
-  tasks: Task[];
-  setTasks: (tasks: Task[] | ((prev: Task[]) => Task[])) => void;
-  schedule: WeeklySchedule;
-  updateSchedule: (schedule: WeeklySchedule) => void;
-  toggleTask: (id: string) => void;
-  language?: Settings['language'];
-}
 
 export type SortOption = 'NEWEST' | 'OLDEST' | 'AZ' | 'ZA' | 'PRIORITY' | 'BLOCKS_DESC' | 'BLOCKS_ASC';
 
@@ -33,7 +23,7 @@ const IvyLeeTaskItem: React.FC<{
   language: Settings['language'];
   playSuccess: () => void;
   playClick: () => void;
-}> = ({ task, index, toggleTask, updateTitle, language, playSuccess, playClick }) => {
+}> = React.memo(({ task, index, toggleTask, updateTitle, language, playSuccess, playClick }) => {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [localTitle, setLocalTitle] = useState(task.title);
@@ -121,10 +111,15 @@ const IvyLeeTaskItem: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 
-export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, schedule, updateSchedule, toggleTask, language = 'en' }) => {
+export const TaskMatrix: React.FC = React.memo(() => {
+  const { state, updateTasks, updateSchedule, toggleTask } = useApp();
+  const tasks = state.tasks;
+  const schedule = state.weeklySchedule;
+  const language = state.settings.language;
+
   const [activeView, setActiveView] = useState<'matrix' | 'ivylee'>('matrix');
   const [sortBy, setSortBy] = useState<SortOption>('PRIORITY');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -132,7 +127,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
   const { playClick, playAdd, playSuccess } = useSound();
   
   // --- Handlers ---
-  const handleAddTask = (newTaskPart: Partial<Task>, slot: {key: string, label: string, hour: number} | null) => {
+  const handleAddTask = useCallback((newTaskPart: Partial<Task>, slot: {key: string, label: string, hour: number} | null) => {
     playAdd();
     const tempId = generateId();
     const newTask: Task = {
@@ -149,7 +144,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       deadline: newTaskPart.deadline
     };
     
-    setTasks(prev => [...prev, newTask]);
+    updateTasks(prev => [...prev, newTask]);
     
     if (slot) {
         const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
@@ -161,10 +156,10 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
         };
         updateSchedule({ ...schedule, ideal: newIdeal });
     }
-  };
+  }, [language, schedule, playAdd, updateTasks, updateSchedule]);
 
   const deleteTask = useCallback((id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+    updateTasks(prev => prev.filter(t => t.id !== id));
     const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
     let changed = false;
     Object.keys(newIdeal).forEach(key => {
@@ -174,50 +169,50 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
         }
     });
     if (changed) updateSchedule({ ...schedule, ideal: newIdeal });
-  }, [setTasks, schedule, updateSchedule]);
+  }, [updateTasks, schedule, updateSchedule]);
 
   const moveTask = useCallback((id: string, quadrant: TaskQuadrant) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, quadrant } : t));
-  }, [setTasks]);
+    updateTasks(prev => prev.map(t => t.id === id ? { ...t, quadrant } : t));
+  }, [updateTasks]);
 
   const toggleFrog = useCallback((id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, isFrog: !t.isFrog } : t));
-  }, [setTasks]);
+    updateTasks(prev => prev.map(t => t.id === id ? { ...t, isFrog: !t.isFrog } : t));
+  }, [updateTasks]);
 
   const updatePurpose = useCallback((id: string, purpose: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, purpose } : t));
-  }, [setTasks]);
+    updateTasks(prev => prev.map(t => t.id === id ? { ...t, purpose } : t));
+  }, [updateTasks]);
 
   const updateTitle = useCallback((id: string, title: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, title } : t));
-  }, [setTasks]);
+    updateTasks(prev => prev.map(t => t.id === id ? { ...t, title } : t));
+  }, [updateTasks]);
 
   const updateTags = useCallback((id: string, tags: string[]) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, tags } : t));
-  }, [setTasks]);
+    updateTasks(prev => prev.map(t => t.id === id ? { ...t, tags } : t));
+  }, [updateTasks]);
 
   const handleAddSubtask = useCallback((taskId: string, title: string) => {
-    setTasks(prev => prev.map(t => {
+    updateTasks(prev => prev.map(t => {
       if (t.id === taskId) {
         const currentSubtasks = t.subtasks || [];
         return { ...t, subtasks: [...currentSubtasks, { title, completed: false }] };
       }
       return t;
     }));
-  }, [setTasks]);
+  }, [updateTasks]);
 
   const handleDeleteSubtask = useCallback((taskId: string, index: number) => {
-    setTasks(prev => prev.map(t => {
+    updateTasks(prev => prev.map(t => {
       if (t.id === taskId && t.subtasks) {
         const newSubtasks = t.subtasks.filter((_, i) => i !== index);
         return { ...t, subtasks: newSubtasks };
       }
       return t;
     }));
-  }, [setTasks]);
+  }, [updateTasks]);
 
   const toggleSubtask = useCallback((taskId: string, index: number) => {
-    setTasks(prev => prev.map(t => {
+    updateTasks(prev => prev.map(t => {
       if (t.id === taskId && t.subtasks) {
         const newSubtasks = [...t.subtasks];
         newSubtasks[index] = { ...newSubtasks[index], completed: !newSubtasks[index].completed };
@@ -225,9 +220,9 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       }
       return t;
     }));
-  }, [setTasks]);
+  }, [updateTasks]);
 
-  const confirmSchedule = (day: string, hour: number) => {
+  const confirmSchedule = useCallback((day: string, hour: number) => {
       if (!schedulingTaskId) return;
       playClick();
       const targetTask = tasks.find(t => t.id === schedulingTaskId);
@@ -252,9 +247,9 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
 
       updateSchedule({ ...schedule, ideal: newIdeal });
       setSchedulingTaskId(null);
-  };
+  }, [schedulingTaskId, tasks, schedule, updateSchedule, playClick]);
 
-  const clearTaskSchedule = () => {
+  const clearTaskSchedule = useCallback(() => {
     if (!schedulingTaskId) return;
     const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
       Object.keys(newIdeal).forEach(k => {
@@ -264,14 +259,14 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       });
     updateSchedule({ ...schedule, ideal: newIdeal });
     setSchedulingTaskId(null);
-  };
+  }, [schedulingTaskId, schedule, updateSchedule]);
 
-  const getTaskSlot = (taskId: string) => {
+  const getTaskSlot = useCallback((taskId: string) => {
       const entry = Object.entries(schedule.ideal).find(([_, block]) => block.taskId === taskId);
       if (!entry) return null;
       const [d, h, m] = entry[0].split('-');
       return m ? `${d}-${h}:30` : `${d}-${h}`;
-  };
+  }, [schedule.ideal]);
 
   // --- Derived State ---
   const uniqueTags = useMemo(() => {
@@ -332,6 +327,11 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       .slice(0, 6);
   }, [tasks, selectedTags]);
 
+  const handleOpenScheduler = useCallback((id: string) => {
+    playClick();
+    setSchedulingTaskId(id);
+  }, [playClick]);
+
   return (
     <div className="space-y-6 animate-fade-in relative">
       <TaskToolbar 
@@ -375,7 +375,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
-             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
              language={language}
@@ -397,7 +397,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
-             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
              language={language}
@@ -419,7 +419,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
-             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
              language={language}
@@ -441,7 +441,7 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
              updateTitle={updateTitle}
              updateTags={updateTags}
              getTaskSlot={getTaskSlot}
-             onOpenScheduler={(id) => { playClick(); setSchedulingTaskId(id); }}
+             onOpenScheduler={handleOpenScheduler}
              selectedTags={selectedTags}
              uniqueTags={uniqueTags}
              language={language}
@@ -489,4 +489,4 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       )}
     </div>
   );
-};
+});

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Task, TaskQuadrant, Settings } from '../types';
 import { MatrixTaskItem } from './MatrixTaskItem';
@@ -27,7 +26,7 @@ interface TaskQuadrantColumnProps {
   language?: Settings['language'];
 }
 
-export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
+export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = React.memo(({
   quadrant,
   title,
   description,
@@ -122,4 +121,4 @@ export const TaskQuadrantColumn: React.FC<TaskQuadrantColumnProps> = ({
       </div>
     </div>
   );
-};
+});

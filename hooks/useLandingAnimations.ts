@@ -1,6 +1,13 @@
 
 import { useState, useEffect } from 'react';
 
+/**
+ * Custom hook that tracks mouse position to create a 3D tilt effect.
+ * Calculates rotation values based on the mouse's distance from the center of the viewport.
+ * 
+ * @param {number} [intensity=15] - The maximum degrees of rotation.
+ * @returns {Object} An object containing 'x' and 'y' rotation degrees.
+ */
 export const useMouseTilt = (intensity = 15) => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 

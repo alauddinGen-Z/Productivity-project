@@ -1,23 +1,20 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Briefcase, Coffee, Heart, Users, Moon, Trash2, PieChart, ArrowDown, ArrowRight } from 'lucide-react';
-import { WeeklySchedule, TimeBlock, BlockCategory, Task, TaskQuadrant, Settings } from '../types';
+import { TimeBlock, BlockCategory, Task, TaskQuadrant } from '../types';
 import { TimeBlockModal } from './TimeBlockModal';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6am to 9pm
 // Keys are standard, labels will be localized
 const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-interface TimeStructurerProps {
-  schedule: WeeklySchedule;
-  updateSchedule: (schedule: WeeklySchedule) => void;
-  updateTasks: (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => void;
-  language: Settings['language'];
-}
-
-export const TimeStructurer: React.FC<TimeStructurerProps> = ({ schedule, updateSchedule, updateTasks, language }) => {
+export const TimeStructurer: React.FC = () => {
+  const { state, updateSchedule, updateTasks } = useApp();
+  const schedule = state.weeklySchedule;
+  const language = state.settings.language;
+  
   const [view, setView] = useState<'ideal' | 'current'>('ideal');
   const [editingCell, setEditingCell] = useState<{ day: string, hour: number } | null>(null);
   const [tempBlock, setTempBlock] = useState<TimeBlock>({ category: 'DEEP', label: '' });

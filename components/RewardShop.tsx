@@ -1,21 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Plus, X, Trash2, Gift, CheckCircle, Edit2, Save } from 'lucide-react';
-import { AppState, RewardItem } from '../types';
+import { RewardItem } from '../types';
 import { useSound } from '../hooks/useSound';
 import { generateId } from '../utils/helpers';
 import { t } from '../utils/translations';
-
-interface RewardShopProps {
-  state: AppState;
-  updateState: (updates: Partial<AppState>) => void;
-}
+import { useApp } from '../context/AppContext';
 
 const AVAILABLE_ICONS = [
   'Box', 'Coffee', 'Gamepad2', 'Youtube', 'Music', 'Sun', 'Moon', 'ShoppingBag', 'Gift'
 ];
 
-export const RewardShop: React.FC<RewardShopProps> = ({ state, updateState }) => {
+export const RewardShop: React.FC = () => {
+  const { state, updateState } = useApp();
   const [redeemedId, setRedeemedId] = useState<string | null>(null);
   const { playSuccess, playClick, playDelete, playAdd, playSoftClick } = useSound();
   const lang = state.settings.language;

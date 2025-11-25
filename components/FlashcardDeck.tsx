@@ -1,18 +1,16 @@
-
 import React, { useState } from 'react';
-import { Flashcard, AppState, Settings } from '../types';
+import { Flashcard } from '../types';
 import { BookOpen, RotateCcw } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { generateId } from '../utils/helpers';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
-interface FlashcardDeckProps {
-  flashcards: Flashcard[];
-  updateState: (updates: Partial<AppState>) => void;
-  language: Settings['language'];
-}
-
-export const FlashcardDeck: React.FC<FlashcardDeckProps> = ({ flashcards, updateState, language }) => {
+export const FlashcardDeck: React.FC = () => {
+  const { state, updateState } = useApp();
+  const flashcards = state.flashcards;
+  const language = state.settings.language;
+  
   const [newCardQ, setNewCardQ] = useState('');
   const [newCardA, setNewCardA] = useState('');
   const [showAnswer, setShowAnswer] = useState<string | null>(null);

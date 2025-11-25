@@ -12,9 +12,17 @@ const QUOTES = [
 ];
 
 interface IntroAnimationProps {
+  /** Callback function triggered when the animation sequence is finished. */
   onComplete: () => void;
 }
 
+/**
+ * Displays a full-screen typing animation of a random stoic quote.
+ * Used as a splash screen or loading transition.
+ * 
+ * @param {IntroAnimationProps} props - Component props.
+ * @returns {JSX.Element} The rendered component.
+ */
 export const IntroAnimation: React.FC<IntroAnimationProps> = ({ onComplete }) => {
   const [text, setText] = useState('');
   const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);

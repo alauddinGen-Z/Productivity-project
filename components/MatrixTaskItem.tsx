@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, Box, Clock, Tag, CornerDownRight, Trash2, GripVertical, Sparkles, CheckCircle2, Plus, X, Edit2, Calendar, AlertTriangle } from 'lucide-react';
 import { Task, TaskQuadrant, Settings } from '../types';
@@ -25,7 +23,7 @@ interface MatrixTaskItemProps {
   language?: Settings['language'];
 }
 
-export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
+export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = React.memo(({
   task,
   quadrant,
   toggleTask,
@@ -395,4 +393,4 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
       </div>
     </div>
   );
-};
+});

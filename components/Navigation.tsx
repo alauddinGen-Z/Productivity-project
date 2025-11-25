@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -20,17 +19,14 @@ import {
 } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
-import { Settings as AppSettings } from '../types';
+import { useApp } from '../context/AppContext';
 
 interface NavigationProps {
   mobileOpen: boolean;
   setMobileOpen: (o: boolean) => void;
   onLogout: () => void;
   onExport: () => void;
-  userName: string;
-  blockBalance: number;
   loaders: Record<string, () => Promise<any>>;
-  language?: AppSettings['language'];
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ 
@@ -38,13 +34,13 @@ export const Navigation: React.FC<NavigationProps> = ({
   setMobileOpen, 
   onLogout, 
   onExport, 
-  userName, 
-  blockBalance,
-  loaders,
-  language = 'en'
+  loaders
 }) => {
   const location = useLocation();
   const { playClick, playSoftClick } = useSound();
+  const { state } = useApp();
+  const { userName, blockBalance, settings } = state;
+  const language = settings.language;
   
   // Memoize nav items to ensure they update when language changes
   const navItems = useMemo(() => [

@@ -1,18 +1,15 @@
-
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, TaskQuadrant } from '../types';
+import { TaskQuadrant } from '../types';
 import { PieChart, Zap, Target, Layers, Trophy, Activity } from 'lucide-react';
 import { LineChart, DonutChart } from './Charts';
 import { t } from '../utils/translations';
-
-interface AnalyticsLayerProps {
-  state: AppState;
-}
+import { useApp } from '../context/AppContext';
 
 const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export const AnalyticsLayer: React.FC<AnalyticsLayerProps> = ({ state }) => {
+export const AnalyticsLayer: React.FC = () => {
+  const { state } = useApp();
   const navigate = useNavigate();
   const lang = state.settings.language;
 

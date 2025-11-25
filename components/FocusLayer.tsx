@@ -1,20 +1,18 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Coffee, BellOff, Smartphone, Check, Target, CheckCircle2, Clock, Moon, Zap } from 'lucide-react';
-import { Task, WeeklySchedule, TimeBlock, Settings } from '../types';
+import { TimeBlock } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { FocusTimer } from './FocusTimer';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
-interface FocusLayerProps {
-  tasks: Task[];
-  toggleTask: (id: string) => void;
-  schedule: WeeklySchedule;
-  language?: Settings['language'];
-}
-
-export const FocusLayer: React.FC<FocusLayerProps> = ({ tasks, toggleTask, schedule, language = 'en' }) => {
+export const FocusLayer: React.FC = () => {
+  const { state, toggleTask } = useApp();
+  const tasks = state.tasks;
+  const schedule = state.weeklySchedule;
+  const language = state.settings.language;
+  
   const navigate = useNavigate();
   const { playClick, playSuccess, playSoftClick, playSessionComplete } = useSound();
   

@@ -12,11 +12,18 @@ const SOUND_URLS: Record<SoundType, string> = {
   night: 'https://assets.mixkit.co/active_storage/sfx/228/228-preview.mp3'
 };
 
+/**
+ * Custom hook for managing ambient background noise (white noise) playback.
+ * Handles loading, playing, pausing, and volume control of audio streams.
+ * 
+ * @returns {Object} An object containing the selected sound, controls, and the AudioElement component.
+ */
 export const useAmbientSound = () => {
   const [selectedSound, setSelectedSound] = useState<SoundType>('none');
   const [volume, setVolume] = useState(0.5);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Effect to handle source changes and playback status
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -52,13 +59,17 @@ export const useAmbientSound = () => {
     };
   }, [selectedSound]);
 
+  // Effect to handle volume changes
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
   }, [volume]);
 
-  // Return a render-able audio element
+  /**
+   * Render-able audio element component. 
+   * Must be included in the component tree for sound to play.
+   */
   const AudioElement = useCallback(() => {
     return React.createElement('audio', {
       ref: audioRef,

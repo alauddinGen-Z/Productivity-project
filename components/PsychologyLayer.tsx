@@ -1,18 +1,13 @@
-
 import React, { useState } from 'react';
-import { AppState, Settings } from '../types';
 import { FlashcardDeck } from './FlashcardDeck';
 import { FeynmanBoard } from './FeynmanBoard';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
+import { useApp } from '../context/AppContext';
 
-interface PsychologyLayerProps {
-  state: AppState;
-  updateState: (updates: Partial<AppState>) => void;
-  language?: Settings['language'];
-}
-
-export const PsychologyLayer: React.FC<PsychologyLayerProps> = ({ state, updateState, language = 'en' }) => {
+export const PsychologyLayer: React.FC = () => {
+  const { state, updateState } = useApp();
+  const language = state.settings.language;
   const [activeTab, setActiveTab] = useState<'recall' | 'feynman'>('recall');
   const { playClick } = useSound();
 
@@ -33,7 +28,7 @@ export const PsychologyLayer: React.FC<PsychologyLayerProps> = ({ state, updateS
         </button>
       </div>
 
-      {activeTab === 'recall' && <FlashcardDeck flashcards={state.flashcards} updateState={updateState} language={language} />}
+      {activeTab === 'recall' && <FlashcardDeck />}
       {activeTab === 'feynman' && <FeynmanBoard language={language} />}
     </div>
   );
