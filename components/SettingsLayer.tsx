@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Settings } from '../types';
-import { Volume2, Moon, Sun, Monitor, Globe, Settings as SettingsIcon, LogOut, Database, RefreshCcw } from 'lucide-react';
+import { Volume2, Moon, Sun, Monitor, Globe, Settings as SettingsIcon, LogOut, Database, RefreshCcw, Bell } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
 import { useApp } from '../context/AppContext';
@@ -62,6 +63,39 @@ export const SettingsLayer: React.FC<SettingsLayerProps> = ({ onLogout }) => {
                 >
                     <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${settings.soundEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
                 </button>
+            </div>
+        </div>
+
+        {/* Notification Settings */}
+        <div className="p-8 border-b border-stone-100">
+            <h3 className="font-serif font-bold text-lg text-stone-800 mb-6 flex items-center gap-2">
+                <Bell size={20} className="text-stone-400" /> Notifications
+            </h3>
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="text-sm font-bold text-stone-700">Enable Reminders</div>
+                        <p className="text-xs text-stone-400 mt-1">Receive daily intention prompts and task alerts.</p>
+                    </div>
+                    <button 
+                        onClick={() => updateSetting('notificationsEnabled', !settings.notificationsEnabled)}
+                        className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${settings.notificationsEnabled ? 'bg-amber-500' : 'bg-stone-200'}`}
+                    >
+                        <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${settings.notificationsEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                    </button>
+                </div>
+                
+                {settings.notificationsEnabled && (
+                     <div className="flex items-center justify-between bg-stone-50 p-4 rounded-sm border border-stone-100 animate-fade-in">
+                        <span className="text-xs font-bold uppercase tracking-widest text-stone-500">Daily Intention Time</span>
+                        <input 
+                            type="time" 
+                            value={settings.dailyReminderTime || '09:00'}
+                            onChange={(e) => updateSetting('dailyReminderTime', e.target.value)}
+                            className="bg-white border border-stone-200 px-3 py-1 rounded-sm text-sm font-mono outline-none focus:border-stone-400"
+                        />
+                     </div>
+                )}
             </div>
         </div>
 

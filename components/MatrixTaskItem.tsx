@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Box, Tag, CornerDownRight, Edit2, Calendar, X } from 'lucide-react';
+import { Check, Box, Tag, CornerDownRight, Edit2, Calendar, X, Bell } from 'lucide-react';
 import { Task, TaskQuadrant } from '../types';
 import { useSound } from '../hooks/useSound';
 import { useApp } from '../context/AppContext';
@@ -277,6 +278,12 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = React.memo(({
                             <span className={`text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold border ${getDeadlineStatus(task.deadline).color}`}>
                                 <Calendar size={8} /> {getDeadlineStatus(task.deadline).text}
                             </span>
+                       )}
+
+                       {task.reminderTime && (
+                           <span className="text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold border border-purple-200 bg-purple-50 text-purple-600" title={`Reminder: ${task.reminderTime}`}>
+                               <Bell size={8} /> {task.reminderTime}
+                           </span>
                        )}
 
                        {task.tags?.map((tag, i) => (

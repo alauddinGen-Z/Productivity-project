@@ -1,4 +1,5 @@
 
+
 /**
  * Defines the four quadrants of the Eisenhower Matrix used for task prioritization.
  */
@@ -51,6 +52,8 @@ export interface Task {
   duration?: number;
   /** Due date timestamp (milliseconds since epoch). */
   deadline?: number;
+  /** Optional daily reminder time (HH:mm format). */
+  reminderTime?: string;
 }
 
 /**
@@ -141,6 +144,10 @@ export interface Settings {
   theme: 'light' | 'dark' | 'sepia';
   /** Whether to reduce animations for accessibility. */
   reducedMotion: boolean;
+  /** Whether browser notifications are enabled. */
+  notificationsEnabled: boolean;
+  /** Time for daily intention check (HH:mm). */
+  dailyReminderTime?: string;
 }
 
 /**
@@ -214,5 +221,7 @@ export const INITIAL_STATE: AppState = {
     soundEnabled: true,
     theme: 'light',
     reducedMotion: false,
+    notificationsEnabled: false,
+    dailyReminderTime: '09:00',
   }
 };

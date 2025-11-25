@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Hourglass, Lock, CalendarDays, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Hourglass, Lock, CalendarDays, ArrowRight, ChevronLeft, ChevronRight, Bell } from 'lucide-react';
 import { Task, TaskQuadrant } from '../types';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
@@ -21,9 +22,11 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, e
   const [blocks, setBlocks] = useState(1);
   const [duration, setDuration] = useState<30 | 60>(60);
   const [deadline, setDeadline] = useState('');
+  const [reminderTime, setReminderTime] = useState('');
   
   const [slot, setSlot] = useState<{key: string, label: string, hour: number} | null>(null);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   
   // Tag Autocomplete State
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
@@ -38,6 +41,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, e
   const tagWrapperRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const reminderRef = useRef<HTMLDivElement>(null);
   
   const { playClick } = useSound();
 
@@ -69,6 +73,9 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, e
       }
       if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
         setShowDatePicker(false);
+      }
+      if (reminderRef.current && !reminderRef.current.contains(event.target as Node)) {
+        setShowTimePicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -250,7 +257,8 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, e
       quadrant: TaskQuadrant.SCHEDULE,
       isFrog: false,
       createdAt: Date.now(),
-      deadline: deadline ? new Date(deadline).getTime() : undefined
+      deadline: deadline ? new Date(deadline).getTime() : undefined,
+      reminderTime: reminderTime || undefined
     };
 
     onAddTask(newTaskPart, slot);
@@ -262,6 +270,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, e
     setDuration(60);
     setSlot(null);
     setDeadline('');
+    setReminderTime('');
   };
 
   const daysGrid = getDaysInMonth(pickerDate);
@@ -435,6 +444,43 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, e
                                 </div>
                             </div>
                          )}
+                    </div>
+
+                    {/* Reminder Input */}
+                    <div className="relative" ref={reminderRef}>
+                        {reminderTime ? (
+                            <button 
+                                type="button"
+                                onClick={() => { setReminderTime(''); playClick(); }}
+                                className="flex items-center gap-1.5 bg-stone-800 text-white pl-2.5 pr-1.5 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider hover:bg-red-600 transition-colors group shadow-sm"
+                            >
+                                <Bell size={12} />
+                                <span>{reminderTime}</span>
+                                <div className="w-px h-3 bg-white/20 mx-1"></div>
+                                <X size={12} className="opacity-70 group-hover:opacity-100" />
+                            </button>
+                        ) : (
+                            <div className="relative">
+                                <button 
+                                    type="button"
+                                    onClick={() => { setShowTimePicker(!showTimePicker); playClick(); }}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-all duration-200 ${showTimePicker ? 'bg-stone-100 border-stone-300 text-stone-600' : 'bg-stone-50 border-stone-100 hover:border-stone-300 text-stone-400 hover:text-stone-600'}`}
+                                    title="Set Reminder"
+                                >
+                                    <Bell size={14} />
+                                </button>
+                                {showTimePicker && (
+                                    <div className="absolute bottom-full left-0 mb-2 p-2 bg-white border border-stone-200 shadow-xl rounded-sm z-50 animate-fade-in">
+                                        <input 
+                                            type="time" 
+                                            className="bg-stone-50 border border-stone-100 px-2 py-1 rounded-sm text-sm font-mono outline-none focus:border-stone-400"
+                                            onChange={(e) => { setReminderTime(e.target.value); setShowTimePicker(false); playClick(); }}
+                                            autoFocus
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Duration Selector */}

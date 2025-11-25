@@ -1,6 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { AppState, INITIAL_STATE, Task, WeeklySchedule, RewardItem } from '../types';
 import { useDataSync } from '../hooks/useDataSync';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface AppContextType {
   state: AppState;
@@ -43,6 +45,9 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ userSession, onLogout, children }) => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
   const { syncedState, isLoginLoading, saveStatus, errorMessage } = useDataSync(userSession, state);
+
+  // Initialize Notifications Hook
+  useNotifications(state.tasks, state.settings);
 
   // Sync Logic & Initialization
   useEffect(() => {
@@ -127,7 +132,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ userSession, onLogout,
     downloadAnchorNode.remove();
   }, [state]);
 
-  const value = useMemo(() => ({
+  const contextValue = useMemo(() => ({
     state,
     updateState,
     updateTasks,
@@ -140,5 +145,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ userSession, onLogout,
     onLogout
   }), [state, updateState, updateTasks, updateSchedule, toggleTask, saveStatus, isLoginLoading, errorMessage, handleExport, onLogout]);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={contextValue}>
+      {children}
+    </AppContext.Provider>
+  );
 };
