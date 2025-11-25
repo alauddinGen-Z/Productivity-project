@@ -1,6 +1,7 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Box, Clock, Tag, CornerDownRight, Trash2, GripVertical, Sparkles, CheckCircle2, Plus, X, Edit2 } from 'lucide-react';
+import { Check, Box, Clock, Tag, CornerDownRight, Trash2, GripVertical, Sparkles, CheckCircle2, Plus, X, Edit2, Calendar, AlertTriangle } from 'lucide-react';
 import { Task, TaskQuadrant, Settings } from '../types';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
@@ -163,6 +164,27 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
       }
   };
 
+  const getDeadlineStatus = (deadline: number) => {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Start of today
+      const today = now.getTime();
+      
+      const dueDate = new Date(deadline);
+      dueDate.setHours(0, 0, 0, 0);
+      const due = dueDate.getTime();
+      
+      const diffTime = due - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return { status: 'overdue', label: t('task_overdue', language), color: 'text-red-500 bg-red-50 border-red-200' };
+      if (diffDays === 0) return { status: 'today', label: t('task_due_today', language), color: 'text-amber-600 bg-amber-50 border-amber-200' };
+      if (diffDays === 1) return { status: 'soon', label: t('task_due_soon', language), color: 'text-amber-500 bg-amber-50/50 border-amber-100' };
+      
+      return { status: 'future', label: dueDate.toLocaleDateString(), color: 'text-stone-400 bg-stone-50 border-stone-100' };
+  };
+
+  const deadlineInfo = task.deadline ? getDeadlineStatus(task.deadline) : null;
+
   return (
     <div 
       draggable
@@ -245,13 +267,6 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
                 </button>
              </div>
           </div>
-
-          {scheduledSlot && (
-              <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-amber-50 border border-amber-100 rounded text-[10px] text-amber-700 font-mono">
-                  <Clock size={10} />
-                  {scheduledSlot.split('-')[0]} @ {scheduledSlot.split('-')[1]}:00
-              </div>
-          )}
           
           <div className="flex flex-wrap gap-2 mt-2 items-center">
              <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded flex items-center gap-1 border border-stone-200">
@@ -261,6 +276,18 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = ({
                 <span className="text-[10px] bg-amber-50 text-amber-600 px-1 rounded flex items-center gap-1">
                   {t('task_30m', language)}
                 </span>
+             )}
+             {deadlineInfo && (
+                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${deadlineInfo.color}`}>
+                   {(deadlineInfo.status === 'overdue' || deadlineInfo.status === 'today') ? <AlertTriangle size={10} /> : <Calendar size={10} />}
+                   <span>{deadlineInfo.label}</span>
+                </div>
+             )}
+             {scheduledSlot && (
+                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 border border-amber-100 rounded text-[10px] text-amber-700 font-mono">
+                    <Clock size={10} />
+                    {scheduledSlot.split('-')[0]} @ {scheduledSlot.split('-')[1]}:00
+                </div>
              )}
              {task.tags?.map(tag => (
                 <span key={tag} className="text-[10px] text-stone-400">#{tag}</span>

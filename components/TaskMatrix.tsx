@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { Task, TaskQuadrant, WeeklySchedule, TimeBlock, Settings } from '../types';
 import { Box, CornerDownRight, Edit2, Check } from 'lucide-react';
@@ -144,7 +145,8 @@ export const TaskMatrix: React.FC<TaskMatrixProps> = ({ tasks = [], setTasks, sc
       tags: newTaskPart.tags || [],
       purpose: newTaskPart.purpose || '',
       blocks: newTaskPart.blocks || 1,
-      duration: newTaskPart.duration || 60
+      duration: newTaskPart.duration || 60,
+      deadline: newTaskPart.deadline
     };
     
     setTasks(prev => [...prev, newTask]);

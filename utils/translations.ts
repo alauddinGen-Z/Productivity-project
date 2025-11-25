@@ -1,4 +1,5 @@
 
+
 import { Settings } from '../types';
 
 type Language = Settings['language'];
@@ -106,6 +107,10 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     task_suggestions: "Suggestions",
     task_enter: "Enter",
     task_30m: "30m",
+    task_deadline: "Deadline",
+    task_due_soon: "Due Soon",
+    task_overdue: "Overdue",
+    task_due_today: "Due Today",
 
     // Sorting & Filtering
     sort_label: "Sort",
@@ -361,6 +366,10 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     task_suggestions: "Сунуштар",
     task_enter: "Кирүү",
     task_30m: "30м",
+    task_deadline: "Мөөнөт",
+    task_due_soon: "Мөөнөт жакында",
+    task_overdue: "Кечиккен",
+    task_due_today: "Бүгүн бүтүрүү",
 
     sort_label: "Сорттоо",
     sort_priority: "Приоритет (Бакалар)",

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap, Hourglass, Lock } from 'lucide-react';
+import { Plus, CornerDownRight, Tag, BarChart2, Clock, X, Calendar, ChevronDown, Zap, Hourglass, Lock, CalendarDays, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { WeeklySchedule, Task, TaskQuadrant, Settings } from '../types';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
@@ -18,6 +18,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
   const [purpose, setPurpose] = useState('');
   const [blocks, setBlocks] = useState(1);
   const [duration, setDuration] = useState<30 | 60>(60);
+  const [deadline, setDeadline] = useState('');
   
   const [slot, setSlot] = useState<{key: string, label: string, hour: number} | null>(null);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
@@ -27,9 +28,15 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [activeTagIndex, setActiveTagIndex] = useState(0);
 
+  // Date Picker State
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerDate, setPickerDate] = useState(new Date()); // Controls the month view
+
   const timeMenuRef = useRef<HTMLDivElement>(null);
   const tagWrapperRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+  
   const { playClick, playAdd } = useSound();
 
   // Map app language to standard locales for Date formatting
@@ -46,7 +53,6 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
      return new Date().toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'short' });
   }, [language]);
 
-  // English fallback for key matching if schedule keys are stored in English (Mon, Tue, etc)
   const scheduleDayKey = useMemo(() => {
      return new Date().toLocaleDateString('en-US', { weekday: 'short' });
   }, []);
@@ -59,13 +65,49 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
       if (tagWrapperRef.current && !tagWrapperRef.current.contains(event.target as Node)) {
         setShowTagSuggestions(false);
       }
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setShowDatePicker(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter slots based on duration selected
-  // LOGIC CHANGE: Only allow selection if a block EXISTS (e.g. Deep Work). Disable if Free.
+  // --- Calendar Logic ---
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay(); // 0 = Sun
+    
+    const days = [];
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
+    return days;
+  };
+
+  const changeMonth = (delta: number) => {
+    const newDate = new Date(pickerDate);
+    newDate.setMonth(newDate.getMonth() + delta);
+    setPickerDate(newDate);
+  };
+
+  const isSelectedDate = (d: Date) => {
+      if (!deadline) return false;
+      const dead = new Date(deadline);
+      return d.getDate() === dead.getDate() && 
+             d.getMonth() === dead.getMonth() && 
+             d.getFullYear() === dead.getFullYear();
+  };
+
+  const isToday = (d: Date) => {
+      const today = new Date();
+      return d.getDate() === today.getDate() && 
+             d.getMonth() === today.getMonth() && 
+             d.getFullYear() === today.getFullYear();
+  };
+  
+  // --- Slots Logic ---
   const availableSlots = useMemo(() => {
       const hours = Array.from({ length: 16 }, (_, i) => i + 6);
       const slots = [];
@@ -84,7 +126,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                   displayTime: `${h}:00`,
                   label: hasBlock ? (mainBlock?.label || halfBlock?.label) : t('status_available', language),
                   category: mainBlock?.category || halfBlock?.category,
-                  isSelectable: hasBlock // Can only schedule if a block exists
+                  isSelectable: hasBlock 
               });
           } else {
               // 30m slots
@@ -96,7 +138,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                   displayTime: `${h}:00`,
                   label: mainBlock ? mainBlock.label : t('status_available', language),
                   category: mainBlock?.category,
-                  isSelectable: !!mainBlock // Only selectable if block exists
+                  isSelectable: !!mainBlock
               });
               
               const slot2HasBlock = !!halfBlock || !!mainIsFull;
@@ -106,7 +148,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                   displayTime: `${h}:30`,
                   label: slot2HasBlock ? (halfBlock?.label || mainBlock?.label) : t('status_available', language),
                   category: halfBlock?.category || (mainIsFull ? mainBlock?.category : undefined),
-                  isSelectable: slot2HasBlock // Only selectable if block exists
+                  isSelectable: slot2HasBlock
               });
           }
       }
@@ -161,6 +203,37 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
       }
   };
 
+  const handleDateQuickSelect = (type: 'today' | 'tomorrow' | 'nextWeek') => {
+      const d = new Date();
+      if (type === 'tomorrow') {
+          d.setDate(d.getDate() + 1);
+      } else if (type === 'nextWeek') {
+          // Calculate next Monday
+          const day = d.getDay();
+          const diff = d.getDate() - day + (day === 0 ? -6 : 1) + 7;
+          d.setDate(diff);
+      }
+      
+      // format to YYYY-MM-DD
+      const offset = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - (offset*60*1000));
+      const dateString = local.toISOString().split('T')[0];
+      
+      setDeadline(dateString);
+      setShowDatePicker(false);
+      playClick();
+  };
+
+  const selectSpecificDate = (date: Date) => {
+      const offset = date.getTimezoneOffset();
+      const local = new Date(date.getTime() - (offset*60*1000));
+      const dateString = local.toISOString().split('T')[0];
+      
+      setDeadline(dateString);
+      setShowDatePicker(false);
+      playClick();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -174,7 +247,8 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
       duration,
       quadrant: TaskQuadrant.SCHEDULE,
       isFrog: false,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      deadline: deadline ? new Date(deadline).getTime() : undefined
     };
 
     onAddTask(newTaskPart, slot);
@@ -185,7 +259,11 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
     setBlocks(1);
     setDuration(60);
     setSlot(null);
+    setDeadline('');
   };
+
+  const daysGrid = getDaysInMonth(pickerDate);
+  const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   return (
     <div className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 transition-all duration-300 focus-within:ring-1 focus-within:ring-stone-200">
@@ -253,6 +331,110 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                         )}
                     </div>
                     
+                    {/* Advanced Date Picker */}
+                    <div className="relative" ref={datePickerRef}>
+                         {deadline ? (
+                            <button 
+                                type="button"
+                                onClick={() => { setDeadline(''); playClick(); }}
+                                className="flex items-center gap-1.5 bg-stone-800 text-white pl-2.5 pr-1.5 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider hover:bg-red-600 transition-colors group shadow-sm"
+                            >
+                                <CalendarDays size={12} />
+                                <span>{new Date(deadline).toLocaleDateString(localeMap[language], { month: 'short', day: 'numeric' })}</span>
+                                <div className="w-px h-3 bg-white/20 mx-1"></div>
+                                <X size={12} className="opacity-70 group-hover:opacity-100" />
+                            </button>
+                         ) : (
+                            <button 
+                                type="button"
+                                onClick={() => { setShowDatePicker(!showDatePicker); playClick(); }}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-all duration-200 ${showDatePicker ? 'bg-stone-100 border-stone-300 text-stone-600 shadow-inner' : 'bg-stone-50 border-stone-100 hover:border-stone-300 text-stone-400 hover:text-stone-600'}`}
+                                title={t('task_deadline', language)}
+                            >
+                                <Calendar size={14} />
+                            </button>
+                         )}
+
+                         {showDatePicker && (
+                            <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-stone-200 shadow-xl rounded-sm z-50 animate-fade-in flex flex-col overflow-hidden">
+                                <div className="px-3 py-2 bg-stone-50 border-b border-stone-100 text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                                    {t('task_deadline', language)}
+                                </div>
+                                <div className="p-1 space-y-0.5 border-b border-stone-100">
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleDateQuickSelect('today')}
+                                        className="w-full text-left px-3 py-1.5 text-xs font-serif text-stone-600 hover:bg-stone-50 hover:text-stone-900 rounded-sm flex items-center justify-between group"
+                                    >
+                                        <span>{t('task_due_today', language).replace('Due ', '')}</span>
+                                        <ArrowRight size={10} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-stone-300" />
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleDateQuickSelect('tomorrow')}
+                                        className="w-full text-left px-3 py-1.5 text-xs font-serif text-stone-600 hover:bg-stone-50 hover:text-stone-900 rounded-sm flex items-center justify-between group"
+                                    >
+                                        <span>Tomorrow</span>
+                                        <ArrowRight size={10} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-stone-300" />
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleDateQuickSelect('nextWeek')}
+                                        className="w-full text-left px-3 py-1.5 text-xs font-serif text-stone-600 hover:bg-stone-50 hover:text-stone-900 rounded-sm flex items-center justify-between group"
+                                    >
+                                        <span>Next Week</span>
+                                        <ArrowRight size={10} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-stone-300" />
+                                    </button>
+                                </div>
+                                
+                                {/* Custom Calendar Grid */}
+                                <div className="p-3 bg-white">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <button type="button" onClick={() => changeMonth(-1)} className="p-1 hover:bg-stone-100 rounded text-stone-400 hover:text-stone-800"><ChevronLeft size={14}/></button>
+                                        <span className="text-xs font-bold text-stone-700">
+                                            {pickerDate.toLocaleDateString(localeMap[language], { month: 'long', year: 'numeric' })}
+                                        </span>
+                                        <button type="button" onClick={() => changeMonth(1)} className="p-1 hover:bg-stone-100 rounded text-stone-400 hover:text-stone-800"><ChevronRight size={14}/></button>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-7 gap-1 mb-1">
+                                        {weekDays.map(d => (
+                                            <div key={d} className="text-[9px] text-center text-stone-300 font-bold uppercase">{d}</div>
+                                        ))}
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {daysGrid.map((date, i) => {
+                                            if (!date) return <div key={i} className="aspect-square"></div>;
+                                            
+                                            const isSelected = isSelectedDate(date);
+                                            const today = isToday(date);
+                                            
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    onClick={() => selectSpecificDate(date)}
+                                                    className={`
+                                                        aspect-square flex items-center justify-center text-[10px] rounded-sm transition-all
+                                                        ${isSelected 
+                                                            ? 'bg-stone-800 text-white font-bold shadow-sm' 
+                                                            : today 
+                                                                ? 'bg-amber-100 text-amber-800 font-bold border border-amber-200'
+                                                                : 'hover:bg-stone-100 text-stone-600'
+                                                        }
+                                                    `}
+                                                >
+                                                    {date.getDate()}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                         )}
+                    </div>
+
                     {/* Duration Selector */}
                     <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-100">
                       <Hourglass size={12} className="text-stone-400" />
@@ -313,7 +495,7 @@ export const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ onAddTask, s
                               onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
                               className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-sm border border-stone-200 hover:border-stone-400 transition-colors text-xs text-stone-500"
                             >
-                                <Calendar size={12} />
+                                <Clock size={12} />
                                 <span>{t('matrix_pick_time', language)}</span>
                                 <ChevronDown size={10} />
                             </button>

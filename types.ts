@@ -1,4 +1,5 @@
 
+
 export enum TaskQuadrant {
   DO = 'DO', // Q1
   SCHEDULE = 'SCHEDULE', // Q2
@@ -23,6 +24,7 @@ export interface Task {
   tags?: string[]; // Organization tags
   blocks: number; // Gamification value
   duration?: number; // Duration in minutes (30 or 60), default 60
+  deadline?: number; // Timestamp for due date
 }
 
 export interface DailyQuests {
