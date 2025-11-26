@@ -3,11 +3,11 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Menu, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
-import { AppState, INITIAL_STATE, Task, WeeklySchedule, RewardItem } from '../types';
+import { AppState, INITIAL_STATE, Task, WeeklySchedule, RewardItem } from './types';
 import { IntroAnimation } from './components/IntroAnimation';
-import { useDataSync } from '../hooks/useDataSync';
-import { t } from '../utils/translations';
-import { AppProvider, useApp } from '../context/AppContext';
+import { useDataSync } from './hooks/useDataSync';
+import { t } from './utils/translations';
+import { AppProvider, useApp } from './context/AppContext';
 
 // Extracted Components
 import { LandingPage } from './components/LandingPage';
