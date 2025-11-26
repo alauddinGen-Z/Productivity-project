@@ -1,5 +1,4 @@
 
-
 /**
  * Defines the four quadrants of the Eisenhower Matrix used for task prioritization.
  */
@@ -148,6 +147,8 @@ export interface Settings {
   notificationsEnabled: boolean;
   /** Time for daily intention check (HH:mm). */
   dailyReminderTime?: string;
+  /** The user's subscription tier. */
+  subscriptionTier: 'free' | 'pro';
 }
 
 /**
@@ -223,5 +224,6 @@ export const INITIAL_STATE: AppState = {
     reducedMotion: false,
     notificationsEnabled: false,
     dailyReminderTime: '09:00',
+    subscriptionTier: 'pro',
   }
 };

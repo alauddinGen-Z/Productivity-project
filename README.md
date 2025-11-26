@@ -57,12 +57,15 @@ The Intentional System is a React-based Progressive Web App (PWA) designed to he
     VITE_SUPABASE_KEY=your_supabase_anon_key
     ```
 
-4.  **Run the development server**:
+4.  **Database Fixes**:
+    To resolve Supabase dashboard warnings (RLS & Indexes), copy the contents of `supabase_fixes.sql` and run them in your Supabase SQL Editor.
+
+5.  **Run the development server**:
     ```bash
     npm run dev
     ```
 
-5.  **Build for production**:
+6.  **Build for production**:
     ```bash
     npm run build
     ```

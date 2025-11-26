@@ -1,7 +1,8 @@
+
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskQuadrant } from '../types';
-import { PieChart, Zap, Target, Layers, Trophy, Activity } from 'lucide-react';
+import { PieChart, Zap, Target, Layers, Trophy, Activity, Lock, Crown } from 'lucide-react';
 import { LineChart, DonutChart } from './Charts';
 import { t } from '../utils/translations';
 import { useApp } from '../context/AppContext';
@@ -9,9 +10,10 @@ import { useApp } from '../context/AppContext';
 const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const AnalyticsLayer: React.FC = () => {
-  const { state } = useApp();
+  const { state, setSubscriptionModalOpen } = useApp();
   const navigate = useNavigate();
   const lang = state.settings.language;
+  const isPro = true; // Temporary bypass: state.settings.subscriptionTier === 'pro';
 
   // Localized days for charts
   const localizedDays = useMemo(() => DAY_KEYS.map(key => t(`day_${key.toLowerCase()}`, lang)), [lang]);
@@ -63,7 +65,7 @@ export const AnalyticsLayer: React.FC = () => {
   }, [state.dailyQuests]);
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
+    <div className="space-y-8 animate-fade-in max-w-5xl mx-auto pb-12 relative">
       
       {/* Header */}
       <div className="bg-[#2c2a26] text-stone-200 p-8 rounded-sm shadow-md border-t-4 border-stone-500 flex justify-between items-center">
@@ -74,10 +76,8 @@ export const AnalyticsLayer: React.FC = () => {
         <PieChart size={48} className="text-stone-600 opacity-50" />
       </div>
 
-      {/* Top Stats Row */}
+      {/* Top Stats Row (Always visible as teaser) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Schedule Adherence */}
          <div 
             onClick={() => navigate('/plan')}
             className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 flex items-center gap-6 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all group"
@@ -92,7 +92,6 @@ export const AnalyticsLayer: React.FC = () => {
           </div>
         </div>
 
-        {/* Task Completion */}
         <div 
             onClick={() => navigate('/tasks')}
             className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 flex items-center gap-6 cursor-pointer hover:shadow-md hover:border-stone-400 transition-all group"
@@ -110,7 +109,6 @@ export const AnalyticsLayer: React.FC = () => {
           </div>
         </div>
 
-        {/* Quest Streak */}
         <div 
             onClick={() => navigate('/')}
             className="bg-white p-6 rounded-sm shadow-sm border border-stone-200 flex items-center gap-6 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all group"
@@ -130,98 +128,119 @@ export const AnalyticsLayer: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Charts Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* 1. Schedule Execution Line Chart */}
-        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2">
-            <div className="flex justify-between items-start mb-6">
-                <div>
-                <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_weekly_exec', lang)}</h3>
-                <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">
-                    <span className="inline-block w-2 h-2 rounded-full bg-stone-300 mr-1"></span> {t('plan_ideal', lang)}
-                    <span className="inline-block w-2 h-2 rounded-full bg-amber-600 ml-3 mr-1"></span> {t('plan_reality', lang)}
-                </p>
+      {/* Main Charts Area (Gated) */}
+      <div className="relative">
+          {!isPro && (
+              <div className="absolute inset-0 z-20 backdrop-blur-sm bg-white/40 flex flex-col items-center justify-center rounded-sm border border-stone-100">
+                  <div className="bg-white p-8 rounded-sm shadow-2xl text-center max-w-sm border-t-4 border-amber-500">
+                      <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Lock size={24} className="text-amber-500" />
+                      </div>
+                      <h3 className="text-xl font-serif font-bold text-stone-900 mb-2">Unlock Deep Insights</h3>
+                      <p className="text-stone-500 mb-6 font-serif italic">
+                          "You cannot manage what you do not measure." <br/> Upgrade to visualize your energy allocation.
+                      </p>
+                      <button 
+                        onClick={() => setSubscriptionModalOpen(true)}
+                        className="bg-stone-900 text-white px-8 py-3 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-colors flex items-center gap-2 mx-auto"
+                      >
+                          <Crown size={14} /> Upgrade to Pro
+                      </button>
+                  </div>
+              </div>
+          )}
+
+          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 ${!isPro ? 'filter blur-sm select-none pointer-events-none opacity-50' : ''}`}>
+            
+            {/* 1. Schedule Execution Line Chart */}
+            <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                    <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_weekly_exec', lang)}</h3>
+                    <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-stone-300 mr-1"></span> {t('plan_ideal', lang)}
+                        <span className="inline-block w-2 h-2 rounded-full bg-amber-600 ml-3 mr-1"></span> {t('plan_reality', lang)}
+                    </p>
+                    </div>
+                    <Zap className="text-stone-200" size={24} />
                 </div>
-                <Zap className="text-stone-200" size={24} />
+                <div className="h-48 w-full">
+                    <LineChart dataIdeal={scheduleData.idealHours} dataCurrent={scheduleData.currentHours} days={localizedDays} />
+                </div>
             </div>
-            <div className="h-48 w-full">
-                <LineChart dataIdeal={scheduleData.idealHours} dataCurrent={scheduleData.currentHours} days={localizedDays} />
-            </div>
-        </div>
 
-        {/* 2. Eisenhower Distribution */}
-        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 relative overflow-hidden">
-          <div className="flex justify-between items-start mb-8">
-             <div>
-                <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_energy', lang)}</h3>
-                <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_pending', lang)}</p>
-             </div>
-             <Target className="text-stone-200" size={24} />
-          </div>
+            {/* 2. Eisenhower Distribution */}
+            <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 relative overflow-hidden">
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                    <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_energy', lang)}</h3>
+                    <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_pending', lang)}</p>
+                </div>
+                <Target className="text-stone-200" size={24} />
+              </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-10">
-            <div className="relative">
-              <DonutChart data={[
-                taskStats.byQuadrant[TaskQuadrant.DO],
-                taskStats.byQuadrant[TaskQuadrant.SCHEDULE],
-                taskStats.byQuadrant[TaskQuadrant.DELEGATE],
-                taskStats.byQuadrant[TaskQuadrant.DELETE]
-              ]} />
-              <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none transform -rotate-0">
-                  <span className="text-2xl font-serif font-bold text-stone-800">{taskStats.pendingTotal}</span>
-                  <span className="text-[9px] text-stone-400 uppercase tracking-widest">{t('stats_active', lang)}</span>
+              <div className="flex flex-col md:flex-row items-center gap-10">
+                <div className="relative">
+                  <DonutChart data={[
+                    taskStats.byQuadrant[TaskQuadrant.DO],
+                    taskStats.byQuadrant[TaskQuadrant.SCHEDULE],
+                    taskStats.byQuadrant[TaskQuadrant.DELEGATE],
+                    taskStats.byQuadrant[TaskQuadrant.DELETE]
+                  ]} />
+                  <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none transform -rotate-0">
+                      <span className="text-2xl font-serif font-bold text-stone-800">{taskStats.pendingTotal}</span>
+                      <span className="text-[9px] text-stone-400 uppercase tracking-widest">{t('stats_active', lang)}</span>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full space-y-4">
+                  {[
+                    { label: t('matrix_do', lang), count: taskStats.byQuadrant[TaskQuadrant.DO], color: 'bg-amber-700' },
+                    { label: t('matrix_schedule', lang), count: taskStats.byQuadrant[TaskQuadrant.SCHEDULE], color: 'bg-stone-700' },
+                    { label: t('matrix_delegate', lang), count: taskStats.byQuadrant[TaskQuadrant.DELEGATE], color: 'bg-stone-300' },
+                    { label: t('matrix_delete', lang), count: taskStats.byQuadrant[TaskQuadrant.DELETE], color: 'bg-stone-100' },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                            <span className="text-sm font-serif text-stone-600 group-hover:text-stone-900 transition-colors">{item.label}</span>
+                        </div>
+                        <span className="font-bold text-stone-800">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 w-full space-y-4">
-               {[
-                 { label: t('matrix_do', lang), count: taskStats.byQuadrant[TaskQuadrant.DO], color: 'bg-amber-700' },
-                 { label: t('matrix_schedule', lang), count: taskStats.byQuadrant[TaskQuadrant.SCHEDULE], color: 'bg-stone-700' },
-                 { label: t('matrix_delegate', lang), count: taskStats.byQuadrant[TaskQuadrant.DELEGATE], color: 'bg-stone-300' },
-                 { label: t('matrix_delete', lang), count: taskStats.byQuadrant[TaskQuadrant.DELETE], color: 'bg-stone-100' },
-               ].map((item) => (
-                 <div key={item.label} className="flex items-center justify-between group">
-                    <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                        <span className="text-sm font-serif text-stone-600 group-hover:text-stone-900 transition-colors">{item.label}</span>
+            {/* 3. System Health */}
+            <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_system_health', lang)}</h3>
+                      <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_consistency', lang)}</p>
                     </div>
-                    <span className="font-bold text-stone-800">{item.count}</span>
-                 </div>
-               ))}
+                    <Layers className="text-stone-200" size={24} />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
+                        <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('stats_knowledge', lang)}</div>
+                        <div className="text-2xl font-serif font-bold text-stone-800">{state.flashcards.length}</div>
+                        <div className="text-xs text-stone-400">{t('stats_cards', lang)}</div>
+                    </div>
+                    <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
+                        <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('nav_review', lang)}</div>
+                        <div className="text-2xl font-serif font-bold text-stone-800">{state.reflections.length}</div>
+                        <div className="text-xs text-stone-400">Entries</div>
+                    </div>
+                    <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
+                        <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Focus</div>
+                        <div className="text-2xl font-serif font-bold text-stone-800">100%</div>
+                        <div className="text-xs text-stone-400">Intent</div>
+                    </div>
+                </div>
             </div>
           </div>
-        </div>
-
-        {/* 3. System Health */}
-        <div className="bg-white p-8 rounded-sm shadow-sm border border-stone-200 col-span-1 lg:col-span-2">
-            <div className="flex justify-between items-start mb-6">
-                <div>
-                   <h3 className="font-serif font-bold text-xl text-stone-800">{t('stats_system_health', lang)}</h3>
-                   <p className="text-xs text-stone-400 uppercase tracking-wider mt-1">{t('stats_consistency', lang)}</p>
-                </div>
-                <Layers className="text-stone-200" size={24} />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
-                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('stats_knowledge', lang)}</div>
-                    <div className="text-2xl font-serif font-bold text-stone-800">{state.flashcards.length}</div>
-                    <div className="text-xs text-stone-400">{t('stats_cards', lang)}</div>
-                </div>
-                <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
-                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">{t('nav_review', lang)}</div>
-                    <div className="text-2xl font-serif font-bold text-stone-800">{state.reflections.length}</div>
-                    <div className="text-xs text-stone-400">Entries</div>
-                </div>
-                <div className="p-4 bg-stone-50 rounded-sm border border-stone-100">
-                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Focus</div>
-                    <div className="text-2xl font-serif font-bold text-stone-800">100%</div>
-                    <div className="text-xs text-stone-400">Intent</div>
-                </div>
-            </div>
-        </div>
-
       </div>
     </div>
   );

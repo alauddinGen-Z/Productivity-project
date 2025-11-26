@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Feather } from 'lucide-react';
 
@@ -26,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({ scrolled, onOpenAuth }) => {
         </div>
 
         <div className="flex items-center gap-8">
-          <div className="hidden md:flex gap-6 text-xs font-bold uppercase tracking-widest text-stone-500">
+          <div className="hidden md:flex gap-6 text-xs font-bold uppercase tracking-widest text-stone-500 whitespace-nowrap">
             <a href="#problem" className="hover:text-stone-900 transition-colors">The Problem</a>
             <a href="#solution" className="hover:text-stone-900 transition-colors">The System</a>
             <a href="#philosophy" className="hover:text-stone-900 transition-colors">Philosophy</a>

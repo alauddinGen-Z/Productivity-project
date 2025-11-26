@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, Box, Tag, CornerDownRight, Edit2, Calendar, X, Bell } from 'lucide-react';
 import { Task, TaskQuadrant } from '../types';
@@ -176,9 +175,9 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = React.memo(({
       const diff = (due - today) / (1000 * 60 * 60 * 24);
 
       if (diff < 0) return { color: 'text-red-500 bg-red-50 border-red-200', text: 'Overdue' };
-      if (diff === 0) return { color: 'text-amber-600 bg-amber-50 border-amber-200', text: 'Due Today' };
-      if (diff <= 2) return { color: 'text-orange-500 bg-orange-50 border-orange-200', text: 'Due Soon' };
-      return { color: 'text-stone-400 bg-stone-50 border-stone-200', text: dueDate.toLocaleDateString() };
+      if (diff === 0) return { color: 'text-amber-700 bg-amber-50 border-amber-200', text: 'Due Today' };
+      if (diff <= 2) return { color: 'text-orange-600 bg-orange-50 border-orange-200', text: 'Due Soon' };
+      return { color: 'text-stone-500 bg-stone-50 border-stone-200', text: dueDate.toLocaleDateString() };
   };
 
   return (
@@ -190,6 +189,7 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = React.memo(({
       <div className="flex items-start gap-3">
         <button 
             onClick={handleToggle}
+            aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
             className={`mt-1 w-5 h-5 rounded-sm border transition-all flex items-center justify-center ${task.completed ? 'bg-stone-800 border-stone-800' : 'border-stone-300 hover:border-stone-500'}`}
         >
             {task.completed && <Check size={12} className="text-white" />}
@@ -198,151 +198,9 @@ export const MatrixTaskItem: React.FC<MatrixTaskItemProps> = React.memo(({
         <div className="flex-1 min-w-0">
            {isEditing ? (
                <div className="space-y-3 mb-2 animate-fade-in">
+                   <label htmlFor={`edit-title-${task.id}`} className="sr-only">Title</label>
                    <input 
+                      id={`edit-title-${task.id}`}
                       value={localTitle}
                       onChange={(e) => setLocalTitle(e.target.value)}
-                      className="w-full bg-white border border-stone-300 p-2 font-serif text-sm focus:border-stone-800 outline-none rounded-sm"
-                      placeholder="Task title..."
-                      autoFocus
-                   />
-                   
-                   <div className="flex items-center gap-2 border border-stone-200 bg-white p-2 rounded-sm relative" ref={tagWrapperRef}>
-                       <Tag size={12} className="text-stone-400" />
-                       <input 
-                          ref={tagInputRef}
-                          value={localTags}
-                          onChange={handleTagChange}
-                          onKeyDown={handleTagKeyDown}
-                          className="w-full text-xs outline-none bg-transparent"
-                          placeholder="Tags..."
-                       />
-                       {showTagSuggestions && (
-                            <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-stone-200 shadow-xl rounded-sm z-50 max-h-32 overflow-y-auto custom-scrollbar flex flex-col">
-                                {tagSuggestions.map((tag, index) => (
-                                    <button 
-                                        key={tag}
-                                        type="button"
-                                        onClick={() => selectTag(tag)}
-                                        className={`text-left px-3 py-2 text-xs font-serif transition-colors ${
-                                            index === activeTagIndex ? 'bg-amber-50 text-amber-900' : 'text-stone-600 hover:bg-stone-50'
-                                        }`}
-                                    >
-                                        #{tag}
-                                    </button>
-                                ))}
-                            </div>
-                       )}
-                   </div>
-
-                   <div className="flex items-center gap-2 border border-stone-200 bg-white p-2 rounded-sm">
-                       <CornerDownRight size={12} className="text-stone-400" />
-                       <input 
-                          value={localPurpose}
-                          onChange={(e) => setLocalPurpose(e.target.value)}
-                          className="w-full text-xs outline-none bg-transparent font-serif italic"
-                          placeholder="Purpose (Niyyah)..."
-                       />
-                   </div>
-
-                   <div className="flex justify-end gap-2 pt-1">
-                        <button onClick={() => { deleteTask(task.id); playDelete(); }} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded">Delete</button>
-                        <button onClick={handleSaveEdit} className="px-3 py-1 bg-stone-800 text-white text-xs uppercase font-bold tracking-wider rounded-sm">Save</button>
-                   </div>
-               </div>
-           ) : (
-               <div className="group/content relative">
-                   <div className="flex justify-between items-start">
-                       <h4 className={`font-serif text-base leading-tight mb-1 cursor-pointer hover:text-amber-700 transition-colors ${task.completed ? 'line-through text-stone-400' : 'text-stone-800'}`} onClick={() => { setIsEditing(true); playClick(); }}>
-                           {task.title}
-                       </h4>
-                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                           <button onClick={() => { setIsEditing(true); playClick(); }} className="p-1 hover:bg-stone-100 rounded text-stone-400 hover:text-stone-600">
-                               <Edit2 size={12} />
-                           </button>
-                       </div>
-                   </div>
-
-                   {task.purpose && (
-                       <p className="text-xs text-stone-500 font-serif italic mb-2 flex items-center gap-1">
-                           <CornerDownRight size={10} className="opacity-50" />
-                           {task.purpose}
-                       </p>
-                   )}
-
-                   <div className="flex flex-wrap gap-2 items-center mt-2">
-                       <span className="text-[9px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded flex items-center gap-1 font-mono border border-stone-200">
-                           <Box size={8} /> {task.blocks}
-                       </span>
-                       
-                       {task.deadline && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold border ${getDeadlineStatus(task.deadline).color}`}>
-                                <Calendar size={8} /> {getDeadlineStatus(task.deadline).text}
-                            </span>
-                       )}
-
-                       {task.reminderTime && (
-                           <span className="text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold border border-purple-200 bg-purple-50 text-purple-600" title={`Reminder: ${task.reminderTime}`}>
-                               <Bell size={8} /> {task.reminderTime}
-                           </span>
-                       )}
-
-                       {task.tags?.map((tag, i) => (
-                           <span key={i} className="text-[9px] text-stone-400 hover:text-stone-600 cursor-pointer">#{tag}</span>
-                       ))}
-                       
-                       {/* Schedule Indicator */}
-                       <button 
-                          onClick={() => { onOpenScheduler(task.id); playClick(); }}
-                          className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${scheduledSlot ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-stone-300 border-stone-200 hover:border-amber-300 hover:text-amber-500'}`}
-                       >
-                          {scheduledSlot ? scheduledSlot : 'Schedule'}
-                       </button>
-
-                       {/* Frog Toggle */}
-                       <button 
-                           onClick={(e) => { e.stopPropagation(); toggleFrog(task.id); playClick(); }}
-                           className={`ml-auto w-4 h-4 rounded-full flex items-center justify-center transition-all ${task.isFrog ? 'bg-amber-100 text-amber-600' : 'bg-transparent text-stone-200 hover:text-stone-400'}`}
-                           title="Toggle Priority (Eat the Frog)"
-                       >
-                           <span className="text-[10px]">★</span>
-                       </button>
-                   </div>
-               </div>
-           )}
-
-            {/* Subtasks Section */}
-            {(task.subtasks?.length > 0 || isEditing) && (
-                <div className="mt-3 pt-2 border-t border-stone-100 pl-1">
-                    {task.subtasks?.map((sub, idx) => (
-                        <div key={idx} className="flex items-center gap-2 mb-1 group/sub">
-                            <button 
-                                onClick={() => onToggleSubtask(idx)}
-                                className={`w-3 h-3 border rounded-sm flex items-center justify-center ${sub.completed ? 'bg-stone-300 border-stone-300' : 'border-stone-200'}`}
-                            >
-                                {sub.completed && <Check size={8} className="text-white" />}
-                            </button>
-                            <span className={`text-xs ${sub.completed ? 'line-through text-stone-300' : 'text-stone-500'}`}>{sub.title}</span>
-                            {isEditing && (
-                                <button onClick={() => deleteSubtask(task.id, idx)} className="ml-auto opacity-0 group-hover/sub:opacity-100 text-red-300 hover:text-red-500"><X size={10} /></button>
-                            )}
-                        </div>
-                    ))}
-                    {isEditing && (
-                        <div className="flex items-center gap-2 mt-2">
-                             <input 
-                                value={newSubtask}
-                                onChange={(e) => setNewSubtask(e.target.value)}
-                                className="flex-1 bg-stone-50 text-xs p-1 outline-none border border-transparent focus:border-stone-200 rounded-sm"
-                                placeholder="Add step..."
-                                onKeyDown={(e) => e.key === 'Enter' && onAddSubtask()}
-                             />
-                             <button onClick={onAddSubtask} className="text-stone-400 hover:text-stone-600"><Check size={12} /></button>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-      </div>
-    </div>
-  );
-});
+                      className="w-full bg-white border border-stone-300 p-2 font-serif text-sm focus

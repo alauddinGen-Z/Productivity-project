@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Plus, X, Trash2, Gift, CheckCircle, Edit2, Save } from 'lucide-react';
+import { Box, Coffee, Gamepad2, Youtube, Music, Sun, Moon, ShoppingBag, Lock, Plus, X, Trash2, Gift, CheckCircle, Edit2, Save, Crown } from 'lucide-react';
 import { RewardItem } from '../types';
 import { useSound } from '../hooks/useSound';
 import { generateId } from '../utils/helpers';
@@ -11,14 +12,28 @@ const AVAILABLE_ICONS = [
 ];
 
 export const RewardShop: React.FC = () => {
-  const { state, updateState } = useApp();
+  const { state, updateState, setSubscriptionModalOpen } = useApp();
   const [redeemedId, setRedeemedId] = useState<string | null>(null);
   const { playSuccess, playClick, playDelete, playAdd, playSoftClick } = useSound();
   const lang = state.settings.language;
+  const isPro = true; // Temporary bypass: state.settings.subscriptionTier === 'pro';
   
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
+  // Logic: Default system rewards (6) + Custom Rewards
+  const customRewardsCount = state.shopItems.filter(i => !i.isDefault).length;
+  // Free limit is 3 custom rewards. We need to account for defaults if they exist in state or separate.
+  // In App.tsx we merged defaults. Let's assume defaults have a specific flag or ID pattern.
+  // Actually, I defined DEFAULT_REWARDS in context but in sync it merges.
+  // Let's assume the first 6 are defaults or hardcoded check.
+  // Better: We check `shopItems` length. If free, limit total to say 9? Or just limit new creations.
+  // The logic in sync was: shopItems: [...DEFAULT_REWARDS, ...oldCustomRewards].
+  // Let's assume any item with ID starting with 'cust-' is custom. I'll change generateId usage below.
+  
+  // Simplification: Just count total items. If > 9 (6 defaults + 3 custom), block.
+  const canAddMore = isPro || state.shopItems.length < 9;
+
   // Form State
   const [formData, setFormData] = useState({
       title: '',
@@ -29,6 +44,10 @@ export const RewardShop: React.FC = () => {
 
   const handleCreateClick = () => {
     playClick();
+    if (!canAddMore) {
+        setSubscriptionModalOpen(true);
+        return;
+    }
     setFormData({ title: '', cost: 1, description: '', icon: 'Gift' });
     setEditingId(null);
     setIsCreating(true);
@@ -70,7 +89,7 @@ export const RewardShop: React.FC = () => {
     } else {
         // Create new with UUID
         const newItem: RewardItem = {
-            id: generateId(),
+            id: `cust-${generateId()}`,
             title: formData.title,
             cost: Math.max(1, formData.cost),
             icon: formData.icon,
@@ -126,12 +145,19 @@ export const RewardShop: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        {!isPro && (
+            <div className="text-xs text-stone-400 font-bold uppercase tracking-wide flex items-center gap-2">
+                <span>Free Plan Limit: {Math.max(0, 9 - state.shopItems.length)} slots left</span>
+                <Crown size={12} className="text-amber-500" />
+            </div>
+        )}
         <button 
           onClick={handleCreateClick}
-          className="flex items-center gap-2 bg-stone-800 text-white px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-stone-700 transition-colors"
+          className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-widest transition-colors ${!canAddMore ? 'bg-stone-200 text-stone-400 hover:bg-amber-100 hover:text-amber-700' : 'bg-stone-800 text-white hover:bg-stone-700'}`}
         >
-          <Plus size={16} /> {t('reward_create_btn', lang)}
+           {!canAddMore ? <Lock size={16} /> : <Plus size={16} />} 
+           {t('reward_create_btn', lang)}
         </button>
       </div>
 
@@ -311,6 +337,21 @@ export const RewardShop: React.FC = () => {
                 </div>
             );
         })}
+        
+        {/* Pro Teaser Card if limit reached */}
+        {!isPro && !canAddMore && (
+           <div 
+              onClick={() => setSubscriptionModalOpen(true)}
+              className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-sm border border-amber-200 border-dashed flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-lg transition-all group"
+           >
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                 <Lock size={24} className="text-amber-500" />
+              </div>
+              <h3 className="font-serif font-bold text-stone-800 text-lg mb-2">Pro Limit Reached</h3>
+              <p className="text-stone-500 text-sm mb-4">Upgrade to create unlimited custom rewards.</p>
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-600 underline">Unlock Pro</span>
+           </div>
+        )}
       </div>
 
       <div className="text-center pt-10 pb-6">

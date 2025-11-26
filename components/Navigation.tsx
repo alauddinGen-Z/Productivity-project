@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -15,7 +16,9 @@ import {
   ShoppingBag,
   Box,
   PieChart,
-  Settings
+  Settings,
+  Star,
+  Crown
 } from 'lucide-react';
 import { useSound } from '../hooks/useSound';
 import { t } from '../utils/translations';
@@ -34,9 +37,10 @@ export const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const location = useLocation();
   const { playClick, playSoftClick } = useSound();
-  const { state, handleExport, onLogout } = useApp();
+  const { state, handleExport, onLogout, setSubscriptionModalOpen } = useApp();
   const { userName, blockBalance, settings } = state;
   const language = settings.language;
+  const isPro = true; // Temporary bypass: settings.subscriptionTier === 'pro';
   
   // Memoize nav items to ensure they update when language changes
   const navItems = useMemo(() => [
@@ -68,8 +72,13 @@ export const Navigation: React.FC<NavigationProps> = ({
       <div className="px-6 py-6">
         <div className="flex items-center justify-between p-3 bg-[#35312e] rounded-sm border border-stone-700/50">
            <div className="flex items-center gap-3">
-             <div className="w-8 h-8 rounded-full bg-stone-700 flex items-center justify-center text-amber-500">
+             <div className="w-8 h-8 rounded-full bg-stone-700 flex items-center justify-center text-amber-500 relative">
                 <User size={14} />
+                {isPro && (
+                   <div className="absolute -top-1 -right-1 bg-amber-500 rounded-full p-0.5 border border-[#35312e]">
+                       <Star size={6} className="fill-white text-white" />
+                   </div>
+                )}
              </div>
              <div className="overflow-hidden">
                 <p className="text-xs text-stone-500 uppercase tracking-wider">{t('nav_traveler_label', language)}</p>
@@ -84,6 +93,21 @@ export const Navigation: React.FC<NavigationProps> = ({
              </div>
            </div>
         </div>
+        
+        {!isPro ? (
+            <button 
+                onClick={() => { setSubscriptionModalOpen(true); playClick(); }}
+                className="w-full mt-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-900/20"
+            >
+                <Crown size={12} className="fill-white/20" />
+                Upgrade to Pro
+            </button>
+        ) : (
+            <div className="w-full mt-4 bg-stone-800/50 border border-stone-700/50 text-stone-400 py-2 rounded-sm text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                <Star size={10} className="text-amber-500 fill-amber-500" />
+                Pro Member
+            </div>
+        )}
       </div>
 
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">

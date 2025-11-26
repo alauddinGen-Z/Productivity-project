@@ -164,8 +164,9 @@ export const TaskMatrix: React.FC = React.memo(() => {
     updateTasks(prev => prev.filter(t => t.id !== id));
     const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
     let changed = false;
-    Object.keys(newIdeal).forEach(key => {
-        if (newIdeal[key].taskId === id) {
+    // Iterate securely over entries
+    Object.entries(newIdeal).forEach(([key, block]) => {
+        if ((block as TimeBlock).taskId === id) {
             delete newIdeal[key];
             changed = true;
         }
@@ -233,8 +234,9 @@ export const TaskMatrix: React.FC = React.memo(() => {
       const key = `${day}-${hour}`;
       const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
       
-      Object.keys(newIdeal).forEach(k => {
-          if (newIdeal[k].taskId === schedulingTaskId) {
+      // Remove any existing slots for this task to avoid duplicates
+      Object.entries(newIdeal).forEach(([k, block]) => {
+          if ((block as TimeBlock).taskId === schedulingTaskId) {
              delete newIdeal[k];
           }
       });
@@ -254,17 +256,17 @@ export const TaskMatrix: React.FC = React.memo(() => {
   const clearTaskSchedule = useCallback(() => {
     if (!schedulingTaskId) return;
     const newIdeal: Record<string, TimeBlock> = { ...schedule.ideal };
-      Object.keys(newIdeal).forEach(k => {
-          if (newIdeal[k].taskId === schedulingTaskId) {
-              delete newIdeal[k];
-          }
-      });
+    Object.entries(newIdeal).forEach(([k, block]) => {
+        if ((block as TimeBlock).taskId === schedulingTaskId) {
+            delete newIdeal[k];
+        }
+    });
     updateSchedule({ ...schedule, ideal: newIdeal });
     setSchedulingTaskId(null);
   }, [schedulingTaskId, schedule, updateSchedule]);
 
   const getTaskSlot = useCallback((taskId: string) => {
-      const entry = Object.entries(schedule.ideal).find(([_, block]) => block.taskId === taskId);
+      const entry = Object.entries(schedule.ideal).find(([_, block]) => (block as TimeBlock).taskId === taskId);
       if (!entry) return null;
       const [d, h, m] = entry[0].split('-');
       return m ? `${d}-${h}:30` : `${d}-${h}`;

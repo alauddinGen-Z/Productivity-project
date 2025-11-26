@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Layout, Zap, Brain } from 'lucide-react';
 
@@ -123,12 +122,6 @@ export const HeroSection: React.FC<{ onOpenAuth: () => void }> = ({ onOpenAuth }
                          </div>
                      </div>
                 </div>
-
-                {/* Abstract Connections */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-30">
-                    <line x1="70%" y1="30%" x2="40%" y2="60%" stroke="#d6d3d1" strokeWidth="1" strokeDasharray="4 4" />
-                    <line x1="40%" y1="60%" x2="60%" y2="80%" stroke="#d6d3d1" strokeWidth="1" strokeDasharray="4 4" />
-                </svg>
             </div>
         </div>
       </div>

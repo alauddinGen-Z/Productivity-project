@@ -15,6 +15,9 @@ interface AppContextType {
   errorMessage: string | null;
   handleExport: () => void;
   onLogout: () => void;
+  isSubscriptionModalOpen: boolean;
+  setSubscriptionModalOpen: (open: boolean) => void;
+  upgradeToPro: () => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -44,6 +47,7 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ userSession, onLogout, children }) => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
+  const [isSubscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const { syncedState, isLoginLoading, saveStatus, errorMessage } = useDataSync(userSession, state);
 
   // Initialize Notifications Hook
@@ -85,6 +89,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ userSession, onLogout,
                 settings: INITIAL_STATE.settings
             };
         }
+        
+        // Ensure subscription tier exists
+        if (!finalData.settings.subscriptionTier) {
+            finalData.settings.subscriptionTier = 'free';
+        }
 
         setState(finalData);
         // Persist local settings for hooks like useSound
@@ -122,6 +131,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ userSession, onLogout,
     });
   }, []);
 
+  const upgradeToPro = useCallback(() => {
+     updateState({ 
+         settings: { ...state.settings, subscriptionTier: 'pro' } 
+     });
+     setSubscriptionModalOpen(false);
+  }, [state.settings, updateState]);
+
   const handleExport = useCallback(() => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
     const downloadAnchorNode = document.createElement('a');
@@ -142,8 +158,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ userSession, onLogout,
     isLoginLoading,
     errorMessage,
     handleExport,
-    onLogout
-  }), [state, updateState, updateTasks, updateSchedule, toggleTask, saveStatus, isLoginLoading, errorMessage, handleExport, onLogout]);
+    onLogout,
+    isSubscriptionModalOpen,
+    setSubscriptionModalOpen,
+    upgradeToPro
+  }), [state, updateState, updateTasks, updateSchedule, toggleTask, saveStatus, isLoginLoading, errorMessage, handleExport, onLogout, isSubscriptionModalOpen, upgradeToPro]);
 
   return (
     <AppContext.Provider value={contextValue}>
